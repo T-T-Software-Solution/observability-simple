@@ -6,11 +6,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Add Application Insights
-builder.Services.AddApplicationInsightsTelemetry(new ApplicationInsightsServiceOptions
-{
-    ConnectionString = builder.Configuration["ApplicationInsights:ConnectionString"]
-});
+// Add Application Insights (automatically picks up APPLICATIONINSIGHTS_CONNECTION_STRING)
+builder.Services.AddApplicationInsightsTelemetry();
 
 // Add logging
 builder.Services.AddLogging(logging =>
