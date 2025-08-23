@@ -55,11 +55,13 @@ app.Use(async (context, next) =>
 });
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+// Enable Swagger for all environments
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Upstream API V1");
+    c.RoutePrefix = "swagger";
+});
 
 // Map health check endpoints
 app.MapHealthChecks("/health");
@@ -129,11 +131,11 @@ app.MapGet("/gateway/products/{id}", async (int id, int? delayMs, HttpContext ht
 .Produces(StatusCodes.Status502BadGateway);
 
 // Gateway Order Endpoint
-app.MapPost("/gateway/orders", async (string? failureMode, HttpContext httpContext, IHttpClientFactory httpClientFactory, ILogger<Program> logger) =>
+app.MapPost("/gateway/orders", async (string? failureMode, int? orderId, HttpContext httpContext, IHttpClientFactory httpClientFactory, ILogger<Program> logger) =>
 {
     var correlationId = httpContext.Items["CorrelationId"]?.ToString();
-    logger.LogInformation("Gateway order endpoint called with failureMode: {FailureMode}, correlationId: {CorrelationId}", 
-        failureMode ?? "none", correlationId);
+    logger.LogInformation("Gateway order endpoint called with failureMode: {FailureMode}, orderId: {OrderId}, correlationId: {CorrelationId}", 
+        failureMode ?? "none", orderId, correlationId);
     
     try
     {
@@ -146,8 +148,14 @@ app.MapPost("/gateway/orders", async (string? failureMode, HttpContext httpConte
             client.DefaultRequestHeaders.Add("X-Correlation-ID", correlationId);
         }
         
-        // Build query string
-        var queryString = !string.IsNullOrEmpty(failureMode) ? $"?failureMode={failureMode}" : "";
+        // Build query string with both failureMode and orderId
+        var queryParams = new List<string>();
+        if (!string.IsNullOrEmpty(failureMode))
+            queryParams.Add($"failureMode={failureMode}");
+        if (orderId.HasValue)
+            queryParams.Add($"orderId={orderId}");
+        
+        var queryString = queryParams.Count > 0 ? "?" + string.Join("&", queryParams) : "";
         var requestUri = $"/orders{queryString}";
         
         logger.LogInformation("Calling downstream API at: {RequestUri} with correlationId: {CorrelationId}", requestUri, correlationId);

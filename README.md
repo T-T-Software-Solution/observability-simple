@@ -213,28 +213,50 @@ When configured with Azure Application Insights, you can:
 
 ## Learning Exercises
 
-### Exercise 1: Identify Latency Source
+### Basic Exercises
+
+#### Exercise 1: Identify Latency Source
 1. Call `/gateway/products/100?delayMs=3000`
 2. Use Application Insights to identify where the delay occurs
 3. Verify the delay is in the downstream service
 
-### Exercise 2: Trace Transient Failures
+#### Exercise 2: Trace Transient Failures
 1. Call `/gateway/orders?failureMode=transient` multiple times
 2. Observe the 50% failure rate
 3. Trace failed requests through both services
 4. Identify the exact failure point and error details
 
-### Exercise 3: Monitor Resource Usage
+#### Exercise 3: Monitor Resource Usage
 1. Generate CPU pressure: `/pressure/cpu?iterations=50000000`
 2. Generate memory pressure: `/pressure/memory?mbToAllocate=500`
 3. Monitor the impact on service performance
 4. Set up alerts for high resource usage
 
-### Exercise 4: Correlate Distributed Errors
+#### Exercise 4: Correlate Distributed Errors
 1. Stop the Downstream API
 2. Call gateway endpoints
 3. Observe 502 Bad Gateway errors
 4. Trace the correlation between gateway errors and downstream unavailability
+
+### Advanced Exercises 🔍
+
+**[View Advanced Observability Exercises](./ADVANCED-EXERCISES.md)**
+
+The advanced exercises include hidden production-like bugs that require detective work to identify:
+- **The Mysterious Slow Products** - Some products consistently take 3+ seconds to load
+- **The Order Processing Anomaly** - Specific order ranges have 90% failure rates
+- **The Memory Leak Mystery** - Certain requests cause memory that never gets released
+- **The Periodic Performance Problem** - Every few requests freeze for 5 seconds
+- **The Cache Corruption Catastrophe** - Invalid inputs corrupt all subsequent responses
+
+Use the bug hunter scripts to generate test traffic:
+```bash
+# PowerShell
+./advanced-bug-hunter.ps1 -BaseUrl http://localhost:5000 -TestType all
+
+# Bash
+./advanced-bug-hunter.sh http://localhost:5000 all
+```
 
 ## Configuration
 

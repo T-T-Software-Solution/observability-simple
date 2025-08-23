@@ -19,6 +19,9 @@ builder.Services.AddLogging(logging =>
 // Add health checks
 builder.Services.AddHealthChecks();
 
+// Add configuration for advanced exercises
+builder.Services.AddSingleton<BugSimulation>();
+
 var app = builder.Build();
 
 // Add correlation ID middleware
@@ -44,11 +47,13 @@ app.Use(async (context, next) =>
 });
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+// Enable Swagger for all environments
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Downstream API V1");
+    c.RoutePrefix = "swagger";
+});
 
 // Map health check endpoints
 app.MapHealthChecks("/health");
@@ -56,11 +61,25 @@ app.MapHealthChecks("/health/ready");
 app.MapHealthChecks("/health/live");
 
 // Endpoint 1: Product Information Endpoint (Latency Simulation)
-app.MapGet("/products/{id}", async (int id, int? delayMs, HttpContext httpContext, ILogger<Program> logger) =>
+app.MapGet("/products/{id}", async (int id, int? delayMs, HttpContext httpContext, ILogger<Program> logger, BugSimulation bugSim) =>
 {
     var correlationId = httpContext.Items["CorrelationId"]?.ToString();
     logger.LogInformation("Product endpoint called with id: {ProductId}, delayMs: {DelayMs}, correlationId: {CorrelationId}", 
         id, delayMs ?? 0, correlationId);
+    
+    // ADVANCED EXERCISE BUG 1: Hardcoded performance degradation for "unlucky" product IDs
+    if (bugSim.IsHardcodedIdBugEnabled && bugSim.IsUnluckyProductId(id))
+    {
+        logger.LogInformation("Product {ProductId} triggering special processing path", id);
+        await Task.Delay(3000); // Hidden 3-second delay for specific IDs
+    }
+    
+    // ADVANCED EXERCISE BUG 3: Memory leak for prime number IDs
+    if (bugSim.IsMemoryLeakBugEnabled && bugSim.IsPrime(id))
+    {
+        bugSim.LeakMemoryForId(id);
+        logger.LogDebug("Processing prime product {ProductId}", id);
+    }
     
     if (delayMs.HasValue && delayMs.Value > 0)
     {
@@ -68,13 +87,20 @@ app.MapGet("/products/{id}", async (int id, int? delayMs, HttpContext httpContex
         await Task.Delay(delayMs.Value);
     }
     
+    // ADVANCED EXERCISE BUG 5: Cache poisoning for ID 0 or negative
+    if (bugSim.IsCachePoisoningBugEnabled && id <= 0)
+    {
+        bugSim.PoisonCache();
+        logger.LogWarning("Processing special product ID: {ProductId}", id);
+    }
+    
     var product = new
     {
         productId = id,
-        name = $"Product {id}",
-        description = $"Description for product {id}",
-        price = 99.99 + id,
-        inStock = true
+        name = bugSim.IsCachePoisoned ? "CORRUPTED_DATA" : $"Product {id}",
+        description = bugSim.IsCachePoisoned ? "CACHE_ERROR" : $"Description for product {id}",
+        price = bugSim.IsCachePoisoned ? -1 : 99.99 + id,
+        inStock = !bugSim.IsCachePoisoned
     };
     
     logger.LogInformation("Returning product: {ProductId}", id);
@@ -85,11 +111,34 @@ app.MapGet("/products/{id}", async (int id, int? delayMs, HttpContext httpContex
 .Produces(StatusCodes.Status200OK);
 
 // Endpoint 2: Order Creation Endpoint (Error Simulation)
-app.MapPost("/orders", (string? failureMode, HttpContext httpContext, ILogger<Program> logger) =>
+app.MapPost("/orders", (string? failureMode, int? orderId, HttpContext httpContext, ILogger<Program> logger, BugSimulation bugSim) =>
 {
     var correlationId = httpContext.Items["CorrelationId"]?.ToString();
-    logger.LogInformation("Order endpoint called with failureMode: {FailureMode}, correlationId: {CorrelationId}", 
-        failureMode ?? "none", correlationId);
+    var actualOrderId = orderId ?? Random.Shared.Next(1, 10000);
+    
+    logger.LogInformation("Order endpoint called with failureMode: {FailureMode}, orderId: {OrderId}, correlationId: {CorrelationId}", 
+        failureMode ?? "none", actualOrderId, correlationId);
+    
+    // ADVANCED EXERCISE BUG 2: Order range processing bug (1000-1099 fail 90% of the time)
+    if (bugSim.IsOrderRangeBugEnabled && actualOrderId >= 1000 && actualOrderId <= 1099)
+    {
+        if (Random.Shared.Next(0, 10) < 9) // 90% failure rate
+        {
+            logger.LogError("Order processing failed for order {OrderId} - Database constraint violation", actualOrderId);
+            throw new InvalidOperationException($"Order {actualOrderId} violates business rule BR-1099");
+        }
+    }
+    
+    // ADVANCED EXERCISE BUG 4: Thread pool exhaustion - every 10th request
+    if (bugSim.IsThreadPoolBugEnabled)
+    {
+        bugSim.IncrementRequestCount();
+        if (bugSim.ShouldExhaustThreadPool())
+        {
+            logger.LogDebug("Request {RequestNumber} triggering extended processing", bugSim.RequestCount);
+            Thread.Sleep(5000); // Block thread for 5 seconds
+        }
+    }
     
     failureMode = failureMode?.ToLower() ?? "none";
     
@@ -115,7 +164,7 @@ app.MapPost("/orders", (string? failureMode, HttpContext httpContext, ILogger<Pr
     
     var order = new
     {
-        orderId = Guid.NewGuid(),
+        orderId = actualOrderId,
         status = "Created",
         createdAt = DateTime.UtcNow,
         totalAmount = 199.99
@@ -201,3 +250,89 @@ app.Run();
 
 // Make Program class accessible for testing
 public partial class Program { }
+
+// Bug Simulation Service for Advanced Exercises
+public class BugSimulation
+{
+    private readonly IConfiguration _configuration;
+    private readonly Dictionary<int, byte[]> _memoryLeaks = new();
+    private bool _cacheCorrupted = false;
+    private int _requestCount = 0;
+    private readonly object _lock = new();
+    
+    // Unlucky product IDs that trigger performance issues
+    private readonly HashSet<int> _unluckyIds = new() { 13, 42, 99, 666, 1337, 2024, 9999 };
+    
+    public BugSimulation(IConfiguration configuration)
+    {
+        _configuration = configuration;
+    }
+    
+    // Feature flags for different bugs (controlled via environment variables)
+    public bool IsHardcodedIdBugEnabled => _configuration.GetValue<bool>("ADVANCED_BUG_HARDCODED_ID", false);
+    public bool IsOrderRangeBugEnabled => _configuration.GetValue<bool>("ADVANCED_BUG_ORDER_RANGE", false);
+    public bool IsMemoryLeakBugEnabled => _configuration.GetValue<bool>("ADVANCED_BUG_MEMORY_LEAK", false);
+    public bool IsThreadPoolBugEnabled => _configuration.GetValue<bool>("ADVANCED_BUG_THREAD_POOL", false);
+    public bool IsCachePoisoningBugEnabled => _configuration.GetValue<bool>("ADVANCED_BUG_CACHE_POISON", false);
+    
+    public int RequestCount => _requestCount;
+    public bool IsCachePoisoned => _cacheCorrupted;
+    
+    public bool IsUnluckyProductId(int id)
+    {
+        return _unluckyIds.Contains(id);
+    }
+    
+    public bool IsPrime(int n)
+    {
+        if (n <= 1) return false;
+        if (n <= 3) return true;
+        if (n % 2 == 0 || n % 3 == 0) return false;
+        
+        for (int i = 5; i * i <= n; i += 6)
+        {
+            if (n % i == 0 || n % (i + 2) == 0)
+                return false;
+        }
+        return true;
+    }
+    
+    public void LeakMemoryForId(int id)
+    {
+        lock (_lock)
+        {
+            if (!_memoryLeaks.ContainsKey(id))
+            {
+                // Leak 5MB per unique prime ID
+                _memoryLeaks[id] = new byte[5 * 1024 * 1024];
+                Random.Shared.NextBytes(_memoryLeaks[id].AsSpan(0, 1024));
+            }
+        }
+    }
+    
+    public void IncrementRequestCount()
+    {
+        lock (_lock)
+        {
+            _requestCount++;
+        }
+    }
+    
+    public bool ShouldExhaustThreadPool()
+    {
+        return _requestCount % 10 == 0;
+    }
+    
+    public void PoisonCache()
+    {
+        _cacheCorrupted = true;
+        // Cache stays poisoned for 30 seconds
+        Task.Delay(30000).ContinueWith(_ => 
+        {
+            lock (_lock)
+            {
+                _cacheCorrupted = false;
+            }
+        });
+    }
+}
