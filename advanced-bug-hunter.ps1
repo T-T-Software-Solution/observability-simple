@@ -1,4 +1,4 @@
-# Advanced Bug Hunter Script - PowerShell Version
+﻿# Advanced Bug Hunter Script - PowerShell Version
 # This script generates various test patterns to help discover hidden bugs in the observability platform
 
 param(
@@ -27,10 +27,10 @@ function Test-RandomProductIds {
             $duration = ((Get-Date) - $start).TotalMilliseconds
             
             if ($duration -gt 2000) {
-                $slowRequests += @{ID = $id; Duration = $duration}
+                $slowRequests += [PSCustomObject]@{ID = $id; Duration = $duration}
                 Write-Host "!" -NoNewline -ForegroundColor Red
             } else {
-                $normalRequests += @{ID = $id; Duration = $duration}
+                $normalRequests += [PSCustomObject]@{ID = $id; Duration = $duration}
                 Write-Host "." -NoNewline -ForegroundColor Green
             }
         } catch {
@@ -53,8 +53,10 @@ function Test-RandomProductIds {
         Write-Host "All requests performed normally" -ForegroundColor Green
     }
     
-    $avgNormal = ($normalRequests | Measure-Object -Property Duration -Average).Average
-    Write-Host "Average normal response time: $([math]::Round($avgNormal))ms" -ForegroundColor Green
+    if ($normalRequests.Count -gt 0) {
+        $avgNormal = ($normalRequests | Measure-Object -Property Duration -Average).Average
+        Write-Host "Average normal response time: $([math]::Round($avgNormal))ms" -ForegroundColor Green
+    }
 }
 
 # Test 2: Sequential Order Range Test (finds range-based failures)
@@ -127,7 +129,7 @@ function Test-PrimeNumbers {
             $start = Get-Date
             $response = Invoke-RestMethod -Uri "$BaseUrl/gateway/products/$id" -Method Get -TimeoutSec 5
             $duration = ((Get-Date) - $start).TotalMilliseconds
-            $primeResults += @{ID = $id; Duration = $duration; IsPrime = $true}
+            $primeResults += [PSCustomObject]@{ID = $id; Duration = $duration; IsPrime = $true}
             Write-Host "." -NoNewline -ForegroundColor Green
         } catch {
             Write-Host "X" -NoNewline -ForegroundColor Red
@@ -141,23 +143,28 @@ function Test-PrimeNumbers {
             $start = Get-Date
             $response = Invoke-RestMethod -Uri "$BaseUrl/gateway/products/$id" -Method Get -TimeoutSec 5
             $duration = ((Get-Date) - $start).TotalMilliseconds
-            $nonPrimeResults += @{ID = $id; Duration = $duration; IsPrime = $false}
+            $nonPrimeResults += [PSCustomObject]@{ID = $id; Duration = $duration; IsPrime = $false}
             Write-Host "." -NoNewline -ForegroundColor Green
         } catch {
             Write-Host "X" -NoNewline -ForegroundColor Red
         }
     }
     
-    $avgPrime = ($primeResults | Measure-Object -Property Duration -Average).Average
-    $avgNonPrime = ($nonPrimeResults | Measure-Object -Property Duration -Average).Average
-    
     Write-Host "`n`nResults:"
-    Write-Host "Average prime ID response time: $([math]::Round($avgPrime))ms" -ForegroundColor Yellow
-    Write-Host "Average non-prime ID response time: $([math]::Round($avgNonPrime))ms" -ForegroundColor Yellow
     
-    if ($avgPrime -gt $avgNonPrime * 1.5) {
-        Write-Host "WARNING: Prime number IDs show performance degradation!" -ForegroundColor Red
-        Write-Host "Hypothesis: Check memory usage patterns for prime IDs" -ForegroundColor Cyan
+    if ($primeResults.Count -gt 0 -and $nonPrimeResults.Count -gt 0) {
+        $avgPrime = ($primeResults | Measure-Object -Property Duration -Average).Average
+        $avgNonPrime = ($nonPrimeResults | Measure-Object -Property Duration -Average).Average
+        
+        Write-Host "Average prime ID response time: $([math]::Round($avgPrime))ms" -ForegroundColor Yellow
+        Write-Host "Average non-prime ID response time: $([math]::Round($avgNonPrime))ms" -ForegroundColor Yellow
+        
+        if ($avgPrime -gt $avgNonPrime * 1.5) {
+            Write-Host "WARNING: Prime number IDs show performance degradation!" -ForegroundColor Red
+            Write-Host "Hypothesis: Check memory usage patterns for prime IDs" -ForegroundColor Cyan
+        }
+    } else {
+        Write-Host "Unable to calculate averages - insufficient data" -ForegroundColor Yellow
     }
 }
 
@@ -172,7 +179,7 @@ function Test-LoadPattern {
         try {
             $response = Invoke-RestMethod -Uri "$BaseUrl/gateway/orders" -Method Post -TimeoutSec 10
             $duration = ((Get-Date) - $start).TotalMilliseconds
-            $results += @{Request = $i; Duration = $duration}
+            $results += [PSCustomObject]@{Request = $i; Duration = $duration}
             
             if ($duration -gt 3000) {
                 Write-Host "S" -NoNewline -ForegroundColor Red
@@ -216,7 +223,7 @@ function Test-PalindromePattern {
             $start = Get-Date
             $response = Invoke-RestMethod -Uri "$BaseUrl/gateway/products/$id" -Method Get -TimeoutSec 15
             $duration = ((Get-Date) - $start).TotalMilliseconds
-            $palindromeResults += @{ID = $id; Duration = $duration; IsPalindrome = $true}
+            $palindromeResults += [PSCustomObject]@{ID = $id; Duration = $duration; IsPalindrome = $true}
             
             if ($duration -gt 5000) {
                 Write-Host "!" -NoNewline -ForegroundColor Red
@@ -235,30 +242,36 @@ function Test-PalindromePattern {
             $start = Get-Date
             $response = Invoke-RestMethod -Uri "$BaseUrl/gateway/products/$id" -Method Get -TimeoutSec 5
             $duration = ((Get-Date) - $start).TotalMilliseconds
-            $nonPalindromeResults += @{ID = $id; Duration = $duration; IsPalindrome = $false}
+            $nonPalindromeResults += [PSCustomObject]@{ID = $id; Duration = $duration; IsPalindrome = $false}
             Write-Host "." -NoNewline -ForegroundColor Green
         } catch {
             Write-Host "X" -NoNewline -ForegroundColor Yellow
         }
     }
     
-    $avgPalindrome = ($palindromeResults | Measure-Object -Property Duration -Average).Average
-    $avgNonPalindrome = ($nonPalindromeResults | Measure-Object -Property Duration -Average).Average
-    
     Write-Host "`n`nResults:"
-    Write-Host "Average palindrome ID response time: $([math]::Round($avgPalindrome))ms" -ForegroundColor Yellow
-    Write-Host "Average non-palindrome ID response time: $([math]::Round($avgNonPalindrome))ms" -ForegroundColor Yellow
     
-    if ($avgPalindrome -gt $avgNonPalindrome * 10) {
-        Write-Host "CRITICAL: Palindrome IDs cause extreme CPU spikes!" -ForegroundColor Red
-        Write-Host "Palindrome requests take ${[math]::Round($avgPalindrome / $avgNonPalindrome)}x longer!" -ForegroundColor Red
-        Write-Host "Hypothesis: CPU-intensive processing for palindrome patterns" -ForegroundColor Cyan
+    if ($palindromeResults.Count -gt 0 -and $nonPalindromeResults.Count -gt 0) {
+        $avgPalindrome = ($palindromeResults | Measure-Object -Property Duration -Average).Average
+        $avgNonPalindrome = ($nonPalindromeResults | Measure-Object -Property Duration -Average).Average
         
-        $slowPalindromes = $palindromeResults | Where-Object { $_.Duration -gt 5000 }
-        if ($slowPalindromes.Count -gt 0) {
-            Write-Host "`nExtremely slow palindrome IDs:" -ForegroundColor Red
-            $slowPalindromes | ForEach-Object { Write-Host "  ID $($_.ID): $([math]::Round($_.Duration))ms" -ForegroundColor Red }
+        Write-Host "Average palindrome ID response time: $([math]::Round($avgPalindrome))ms" -ForegroundColor Yellow
+        Write-Host "Average non-palindrome ID response time: $([math]::Round($avgNonPalindrome))ms" -ForegroundColor Yellow
+        
+        if ($avgPalindrome -gt $avgNonPalindrome * 10) {
+            Write-Host "CRITICAL: Palindrome IDs cause extreme CPU spikes!" -ForegroundColor Red
+            $ratio = [math]::Round($avgPalindrome / $avgNonPalindrome)
+            Write-Host "Palindrome requests take ${ratio}x longer!" -ForegroundColor Red
+            Write-Host "Hypothesis: CPU-intensive processing for palindrome patterns" -ForegroundColor Cyan
+            
+            $slowPalindromes = $palindromeResults | Where-Object { $_.Duration -gt 5000 }
+            if ($slowPalindromes.Count -gt 0) {
+                Write-Host "`nExtremely slow palindrome IDs:" -ForegroundColor Red
+                $slowPalindromes | ForEach-Object { Write-Host "  ID $($_.ID): $([math]::Round($_.Duration))ms" -ForegroundColor Red }
+            }
         }
+    } else {
+        Write-Host "Unable to calculate averages - insufficient data" -ForegroundColor Yellow
     }
 }
 
@@ -274,7 +287,7 @@ function Test-EdgeCases {
         Write-Host "`nTesting Product ID $id..." -ForegroundColor White
         try {
             $response = Invoke-RestMethod -Uri "$BaseUrl/gateway/products/$id" -Method Get -TimeoutSec 5
-            $results += @{ID = $id; Status = "Success"; Data = $response}
+            $results += [PSCustomObject]@{ID = $id; Status = "Success"; Data = $response}
             Write-Host "  Success" -ForegroundColor Green
             
             # Check for data corruption
@@ -284,7 +297,7 @@ function Test-EdgeCases {
                 Write-Host "  Product price: $($response.price)" -ForegroundColor Yellow
             }
         } catch {
-            $results += @{ID = $id; Status = "Failed"; Error = $_.Exception.Message}
+            $results += [PSCustomObject]@{ID = $id; Status = "Failed"; Error = $_.Exception.Message}
             Write-Host "  Failed: $($_.Exception.Message)" -ForegroundColor Red
         }
     }
@@ -333,4 +346,8 @@ switch ($TestType.ToLower()) {
 }
 
 Write-Host "`n=== Bug Hunter Complete ===" -ForegroundColor Cyan
-Write-Host "Check Application Insights for detailed telemetry!" -ForegroundColor Yellow
+Write-Host "Check Application Insights for detailed telemetry and code locations!" -ForegroundColor Yellow
+Write-Host "`n🔍 Code-Level Analysis:" -ForegroundColor Cyan
+Write-Host "All bugs now include exact file names and line numbers in Application Insights" -ForegroundColor White
+Write-Host "Look for 'BugTriggered' events with CodeLocation dimensions" -ForegroundColor Green
+

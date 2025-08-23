@@ -337,4 +337,7 @@ case "${TEST_TYPE,,}" in
 esac
 
 echo -e "\n\033[36m=== Bug Hunter Complete ===\033[0m"
-echo -e "\033[33mCheck Application Insights for detailed telemetry!\033[0m"
+echo -e "\033[33mCheck Application Insights for detailed telemetry and code locations!\033[0m"
+echo -e "\n\033[36m🔍 Code-Level Analysis:\033[0m"
+echo -e "\033[37mAll bugs now include exact file names and line numbers in Application Insights\033[0m"
+echo -e "\033[32mLook for 'BugTriggered' events with CodeLocation dimensions\033[0m"

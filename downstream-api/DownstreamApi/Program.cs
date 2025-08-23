@@ -1,4 +1,8 @@
 using Microsoft.ApplicationInsights.AspNetCore.Extensions;
+using System.Runtime.CompilerServices;
+using System.Diagnostics;
+using Microsoft.ApplicationInsights;
+using Microsoft.ApplicationInsights.DataContracts;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +25,7 @@ builder.Services.AddHealthChecks();
 
 // Add configuration for advanced exercises
 builder.Services.AddSingleton<BugSimulation>();
+builder.Services.AddSingleton<CodeTracker>();
 
 var app = builder.Build();
 
@@ -61,7 +66,7 @@ app.MapHealthChecks("/health/ready");
 app.MapHealthChecks("/health/live");
 
 // Endpoint 1: Product Information Endpoint (Latency Simulation)
-app.MapGet("/products/{id}", async (int id, int? delayMs, HttpContext httpContext, ILogger<Program> logger, BugSimulation bugSim) =>
+app.MapGet("/products/{id}", async (int id, int? delayMs, HttpContext httpContext, ILogger<Program> logger, BugSimulation bugSim, CodeTracker codeTracker) =>
 {
     var correlationId = httpContext.Items["CorrelationId"]?.ToString();
     logger.LogInformation("Product endpoint called with id: {ProductId}, delayMs: {DelayMs}, correlationId: {CorrelationId}", 
@@ -70,6 +75,7 @@ app.MapGet("/products/{id}", async (int id, int? delayMs, HttpContext httpContex
     // ADVANCED EXERCISE BUG 1: Hardcoded performance degradation for "unlucky" product IDs
     if (bugSim.IsHardcodedIdBugEnabled && bugSim.IsUnluckyProductId(id))
     {
+        codeTracker.LogBugTriggered(logger, "HARDCODED_DELAY", $"ProductId={id}", 3000);
         logger.LogInformation("Product {ProductId} triggering special processing path", id);
         await Task.Delay(3000); // Hidden 3-second delay for specific IDs
     }
@@ -77,14 +83,18 @@ app.MapGet("/products/{id}", async (int id, int? delayMs, HttpContext httpContex
     // ADVANCED EXERCISE BUG 3: Memory leak for prime number IDs
     if (bugSim.IsMemoryLeakBugEnabled && bugSim.IsPrime(id))
     {
+        codeTracker.LogBugTriggered(logger, "MEMORY_LEAK", $"Prime ProductId={id}", 0);
         bugSim.LeakMemoryForId(id);
         logger.LogDebug("Processing prime product {ProductId}", id);
     }
     
     // ADVANCED EXERCISE BUG 6: CPU spike for palindrome IDs
-    if (bugSim.IsCpuSpikeBugEnabled)
+    if (bugSim.IsCpuSpikeBugEnabled && bugSim.IsPalindrome(id))
     {
-        bugSim.ConsumeCpuForPalindrome(id, logger);
+        var stopwatch = Stopwatch.StartNew();
+        bugSim.ConsumeCpuForPalindrome(id, logger, codeTracker);
+        stopwatch.Stop();
+        codeTracker.LogBugTriggered(logger, "CPU_SPIKE", $"Palindrome ProductId={id}", stopwatch.ElapsedMilliseconds);
     }
     
     if (delayMs.HasValue && delayMs.Value > 0)
@@ -96,6 +106,7 @@ app.MapGet("/products/{id}", async (int id, int? delayMs, HttpContext httpContex
     // ADVANCED EXERCISE BUG 5: Cache poisoning for ID 0 or negative
     if (bugSim.IsCachePoisoningBugEnabled && id <= 0)
     {
+        codeTracker.LogBugTriggered(logger, "CACHE_POISON", $"Invalid ProductId={id}", 0);
         bugSim.PoisonCache();
         logger.LogWarning("Processing special product ID: {ProductId}", id);
     }
@@ -117,7 +128,7 @@ app.MapGet("/products/{id}", async (int id, int? delayMs, HttpContext httpContex
 .Produces(StatusCodes.Status200OK);
 
 // Endpoint 2: Order Creation Endpoint (Error Simulation)
-app.MapPost("/orders", (string? failureMode, int? orderId, HttpContext httpContext, ILogger<Program> logger, BugSimulation bugSim) =>
+app.MapPost("/orders", (string? failureMode, int? orderId, HttpContext httpContext, ILogger<Program> logger, BugSimulation bugSim, CodeTracker codeTracker) =>
 {
     var correlationId = httpContext.Items["CorrelationId"]?.ToString();
     var actualOrderId = orderId ?? Random.Shared.Next(1, 10000);
@@ -130,6 +141,7 @@ app.MapPost("/orders", (string? failureMode, int? orderId, HttpContext httpConte
     {
         if (Random.Shared.Next(0, 10) < 9) // 90% failure rate
         {
+            codeTracker.LogBugTriggered(logger, "ORDER_RANGE_FAILURE", $"OrderId={actualOrderId}", 0);
             logger.LogError("Order processing failed for order {OrderId} - Database constraint violation", actualOrderId);
             throw new InvalidOperationException($"Order {actualOrderId} violates business rule BR-1099");
         }
@@ -141,6 +153,7 @@ app.MapPost("/orders", (string? failureMode, int? orderId, HttpContext httpConte
         bugSim.IncrementRequestCount();
         if (bugSim.ShouldExhaustThreadPool())
         {
+            codeTracker.LogBugTriggered(logger, "THREAD_POOL_EXHAUSTION", $"RequestNumber={bugSim.RequestCount}", 5000);
             logger.LogDebug("Request {RequestNumber} triggering extended processing", bugSim.RequestCount);
             Thread.Sleep(5000); // Block thread for 5 seconds
         }
@@ -252,6 +265,7 @@ app.MapGet("/pressure/memory", async (int? mbToAllocate, ILogger<Program> logger
 .WithOpenApi()
 .Produces(StatusCodes.Status200OK);
 
+
 app.Run();
 
 // Make Program class accessible for testing
@@ -359,7 +373,7 @@ public class BugSimulation
         return true;
     }
     
-    public void ConsumeCpuForPalindrome(int id, ILogger logger)
+    public void ConsumeCpuForPalindrome(int id, ILogger logger, CodeTracker codeTracker)
     {
         if (IsPalindrome(id))
         {
@@ -385,4 +399,155 @@ public class BugSimulation
             logger.LogWarning("CPU spike completed for palindrome {ProductId} in {Duration}ms", id, duration);
         }
     }
+}
+
+// Enhanced Code Tracking and Diagnostics
+public class CodeTracker
+{
+    private readonly List<BugEvent> _bugEvents = new();
+    private readonly object _lock = new();
+    private readonly TelemetryClient? _telemetryClient;
+
+    public CodeTracker(IServiceProvider serviceProvider)
+    {
+        // Try to get TelemetryClient, but don't fail if Application Insights is not configured
+        _telemetryClient = serviceProvider.GetService<TelemetryClient>();
+    }
+
+    public void LogBugTriggered(
+        ILogger logger,
+        string bugType,
+        string context,
+        long durationMs,
+        [CallerMemberName] string methodName = "",
+        [CallerFilePath] string filePath = "",
+        [CallerLineNumber] int lineNumber = 0)
+    {
+        var fileName = Path.GetFileName(filePath);
+        var codeLocation = $"{fileName}:{lineNumber}";
+        var stackTrace = Environment.StackTrace;
+        
+        var bugEvent = new BugEvent
+        {
+            Timestamp = DateTime.UtcNow,
+            BugType = bugType,
+            Context = context,
+            DurationMs = durationMs,
+            MethodName = methodName,
+            FileName = fileName,
+            LineNumber = lineNumber,
+            CodeLocation = codeLocation,
+            StackTrace = stackTrace
+        };
+
+        lock (_lock)
+        {
+            _bugEvents.Add(bugEvent);
+            
+            // Keep only last 100 events to prevent memory issues
+            if (_bugEvents.Count > 100)
+            {
+                _bugEvents.RemoveAt(0);
+            }
+        }
+
+        // Log with structured data
+        using (logger.BeginScope(new Dictionary<string, object>
+        {
+            ["BugType"] = bugType,
+            ["Context"] = context,
+            ["CodeLocation"] = codeLocation,
+            ["MethodName"] = methodName,
+            ["FileName"] = fileName,
+            ["LineNumber"] = lineNumber,
+            ["DurationMs"] = durationMs
+        }))
+        {
+            logger.LogWarning("🐛 BUG DETECTED: {BugType} at {CodeLocation} in method {MethodName} - {Context}", 
+                bugType, codeLocation, methodName, context);
+        }
+
+        // Send custom telemetry to Application Insights
+        _telemetryClient?.TrackEvent("BugTriggered", new Dictionary<string, string>
+        {
+            ["BugType"] = bugType,
+            ["Context"] = context,
+            ["CodeLocation"] = codeLocation,
+            ["MethodName"] = methodName,
+            ["FileName"] = fileName,
+            ["LineNumber"] = lineNumber.ToString(),
+            ["StackTrace"] = stackTrace
+        }, new Dictionary<string, double>
+        {
+            ["DurationMs"] = durationMs
+        });
+    }
+
+    public List<BugEvent> GetRecentBugEvents()
+    {
+        lock (_lock)
+        {
+            return _bugEvents.ToList();
+        }
+    }
+
+    public BugDiagnostics GetDiagnostics()
+    {
+        lock (_lock)
+        {
+            var events = _bugEvents.ToList();
+            var bugSummary = events
+                .GroupBy(e => e.BugType)
+                .ToDictionary(
+                    g => g.Key, 
+                    g => new BugSummary
+                    {
+                        Count = g.Count(),
+                        AvgDurationMs = g.Average(e => e.DurationMs),
+                        LastOccurrence = g.Max(e => e.Timestamp),
+                        CodeLocations = g.Select(e => e.CodeLocation).Distinct().ToList()
+                    });
+
+            return new BugDiagnostics
+            {
+                TotalBugEvents = events.Count,
+                BugTypes = bugSummary,
+                RecentEvents = events.TakeLast(10).ToList(),
+                CodeHotspots = events
+                    .GroupBy(e => e.CodeLocation)
+                    .OrderByDescending(g => g.Count())
+                    .Take(5)
+                    .ToDictionary(g => g.Key, g => g.Count())
+            };
+        }
+    }
+}
+
+public class BugEvent
+{
+    public DateTime Timestamp { get; set; }
+    public string BugType { get; set; } = "";
+    public string Context { get; set; } = "";
+    public long DurationMs { get; set; }
+    public string MethodName { get; set; } = "";
+    public string FileName { get; set; } = "";
+    public int LineNumber { get; set; }
+    public string CodeLocation { get; set; } = "";
+    public string StackTrace { get; set; } = "";
+}
+
+public class BugSummary
+{
+    public int Count { get; set; }
+    public double AvgDurationMs { get; set; }
+    public DateTime LastOccurrence { get; set; }
+    public List<string> CodeLocations { get; set; } = new();
+}
+
+public class BugDiagnostics
+{
+    public int TotalBugEvents { get; set; }
+    public Dictionary<string, BugSummary> BugTypes { get; set; } = new();
+    public List<BugEvent> RecentEvents { get; set; } = new();
+    public Dictionary<string, int> CodeHotspots { get; set; } = new();
 }

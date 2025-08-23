@@ -204,6 +204,7 @@ app.MapPost("/gateway/orders", async (string? failureMode, int? orderId, HttpCon
 .Produces(StatusCodes.Status201Created)
 .Produces(StatusCodes.Status502BadGateway);
 
+
 app.Run();
 
 // Custom health check for downstream API

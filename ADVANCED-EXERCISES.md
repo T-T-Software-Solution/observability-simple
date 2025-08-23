@@ -329,6 +329,99 @@ Common palindrome IDs to test:
 
 ---
 
+## 🔍 Code-Level Bug Hunting
+
+The system now includes **precise code location tracking** that tells you exactly which line of code causes each bug - just like real production systems using only observability data!
+
+### Production-Ready Approach
+
+**No debug endpoints** - just like real production systems! All code location data flows through Application Insights telemetry.
+
+### Enhanced Logging Format
+
+All bug events now log with structured data in Application Insights:
+```
+🐛 BUG DETECTED: CPU_SPIKE at Program.cs:94 in method <Main>$ - Palindrome ProductId=121
+```
+
+### Bug Code Locations
+
+Find these exact locations in telemetry data:
+
+| Bug Type | Code Location | Description |
+|----------|---------------|-------------|
+| `HARDCODED_DELAY` | Program.cs:78-81 | Unlucky ID delay logic |
+| `ORDER_RANGE_FAILURE` | Program.cs:144-147 | Range validation failure |
+| `MEMORY_LEAK` | Program.cs:86-89 | Prime number memory leak |
+| `THREAD_POOL_EXHAUSTION` | Program.cs:156-159 | Thread blocking logic |
+| `CACHE_POISON` | Program.cs:109-112 | Cache corruption trigger |
+| `CPU_SPIKE` | Program.cs:94-98 | Palindrome CPU intensive code |
+
+### How to Hunt Bugs
+
+1. **Generate Issues**: Use the bug hunter scripts to trigger problems
+2. **Check Application Insights**: Look for `BugTriggered` custom events
+3. **Analyze Telemetry**: Use KQL queries to find code locations
+4. **Correlate Data**: Match symptoms to exact line numbers
+
+---
+
+## KQL Queries for Code-Level Investigation
+
+### Find Bugs by Code Location
+```kql
+customEvents
+| where name == "BugTriggered"
+| extend BugType = tostring(customDimensions.BugType)
+| extend CodeLocation = tostring(customDimensions.CodeLocation)
+| extend Context = tostring(customDimensions.Context)
+| extend LineNumber = toint(customDimensions.LineNumber)
+| project timestamp, BugType, CodeLocation, Context, LineNumber
+| order by timestamp desc
+```
+
+### Identify Code Hotspots
+```kql
+customEvents
+| where name == "BugTriggered"
+| extend CodeLocation = tostring(customDimensions.CodeLocation)
+| extend MethodName = tostring(customDimensions.MethodName)
+| summarize 
+    BugCount = count(),
+    AvgDuration = avg(toreal(customMeasurements.DurationMs)),
+    UniqueBugTypes = dcount(tostring(customDimensions.BugType))
+    by CodeLocation, MethodName
+| order by BugCount desc
+```
+
+### Performance Impact by Line Number
+```kql
+customEvents
+| where name == "BugTriggered"
+| extend BugType = tostring(customDimensions.BugType)
+| extend CodeLocation = tostring(customDimensions.CodeLocation)
+| extend DurationMs = toreal(customMeasurements.DurationMs)
+| summarize 
+    TotalImpact = sum(DurationMs),
+    AvgImpact = avg(DurationMs),
+    Count = count()
+    by BugType, CodeLocation
+| order by TotalImpact desc
+```
+
+### Stack Trace Analysis
+```kql
+customEvents
+| where name == "BugTriggered"
+| extend StackTrace = tostring(customDimensions.StackTrace)
+| extend BugType = tostring(customDimensions.BugType)
+| project timestamp, BugType, StackTrace
+| where isnotempty(StackTrace)
+| take 10
+```
+
+---
+
 ## KQL Queries for Investigation
 
 ### Find Patterns in Slow Requests
