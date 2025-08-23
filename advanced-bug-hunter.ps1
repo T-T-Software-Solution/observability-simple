@@ -200,9 +200,71 @@ function Test-LoadPattern {
     }
 }
 
-# Test 5: Edge Case Test (finds boundary issues)
+# Test 5: Palindrome Pattern Test (finds CPU spike issues)
+function Test-PalindromePattern {
+    Write-Host "`n[TEST 5] Palindrome Pattern Test" -ForegroundColor Green
+    Write-Host "Testing palindrome IDs for CPU spike issues..." -ForegroundColor White
+    
+    # Test various palindrome IDs
+    $palindromes = @(11, 22, 33, 44, 55, 66, 77, 88, 99, 101, 111, 121, 131, 141, 151, 161, 171, 181, 191, 202, 212, 222, 232, 242, 252, 1001, 1111, 1221, 1331, 1441, 1551, 1661, 1771, 1881, 1991, 2002, 2112, 2222, 2332, 2442)
+    $nonPalindromes = @(10, 12, 13, 14, 15, 16, 17, 18, 19, 20, 23, 24, 25, 26, 27, 28, 29, 30, 100, 102, 103, 104, 105, 106, 107, 108, 109, 110, 112, 113, 114, 115)
+    
+    Write-Host "Testing palindrome IDs..." -ForegroundColor White
+    $palindromeResults = @()
+    foreach ($id in $palindromes[0..9]) {  # Test first 10 palindromes
+        try {
+            $start = Get-Date
+            $response = Invoke-RestMethod -Uri "$BaseUrl/gateway/products/$id" -Method Get -TimeoutSec 15
+            $duration = ((Get-Date) - $start).TotalMilliseconds
+            $palindromeResults += @{ID = $id; Duration = $duration; IsPalindrome = $true}
+            
+            if ($duration -gt 5000) {
+                Write-Host "!" -NoNewline -ForegroundColor Red
+            } else {
+                Write-Host "." -NoNewline -ForegroundColor Green
+            }
+        } catch {
+            Write-Host "X" -NoNewline -ForegroundColor Yellow
+        }
+    }
+    
+    Write-Host "`nTesting non-palindrome IDs..." -ForegroundColor White
+    $nonPalindromeResults = @()
+    foreach ($id in $nonPalindromes[0..9]) {  # Test first 10 non-palindromes
+        try {
+            $start = Get-Date
+            $response = Invoke-RestMethod -Uri "$BaseUrl/gateway/products/$id" -Method Get -TimeoutSec 5
+            $duration = ((Get-Date) - $start).TotalMilliseconds
+            $nonPalindromeResults += @{ID = $id; Duration = $duration; IsPalindrome = $false}
+            Write-Host "." -NoNewline -ForegroundColor Green
+        } catch {
+            Write-Host "X" -NoNewline -ForegroundColor Yellow
+        }
+    }
+    
+    $avgPalindrome = ($palindromeResults | Measure-Object -Property Duration -Average).Average
+    $avgNonPalindrome = ($nonPalindromeResults | Measure-Object -Property Duration -Average).Average
+    
+    Write-Host "`n`nResults:"
+    Write-Host "Average palindrome ID response time: $([math]::Round($avgPalindrome))ms" -ForegroundColor Yellow
+    Write-Host "Average non-palindrome ID response time: $([math]::Round($avgNonPalindrome))ms" -ForegroundColor Yellow
+    
+    if ($avgPalindrome -gt $avgNonPalindrome * 10) {
+        Write-Host "CRITICAL: Palindrome IDs cause extreme CPU spikes!" -ForegroundColor Red
+        Write-Host "Palindrome requests take ${[math]::Round($avgPalindrome / $avgNonPalindrome)}x longer!" -ForegroundColor Red
+        Write-Host "Hypothesis: CPU-intensive processing for palindrome patterns" -ForegroundColor Cyan
+        
+        $slowPalindromes = $palindromeResults | Where-Object { $_.Duration -gt 5000 }
+        if ($slowPalindromes.Count -gt 0) {
+            Write-Host "`nExtremely slow palindrome IDs:" -ForegroundColor Red
+            $slowPalindromes | ForEach-Object { Write-Host "  ID $($_.ID): $([math]::Round($_.Duration))ms" -ForegroundColor Red }
+        }
+    }
+}
+
+# Test 6: Edge Case Test (finds boundary issues)
 function Test-EdgeCases {
-    Write-Host "`n[TEST 5] Edge Case Test" -ForegroundColor Green
+    Write-Host "`n[TEST 6] Edge Case Test" -ForegroundColor Green
     Write-Host "Testing edge cases (0, negative, very large IDs)..." -ForegroundColor White
     
     $edgeCases = @(0, -1, -100, 999999, 2147483647)
@@ -250,6 +312,7 @@ switch ($TestType.ToLower()) {
     "range" { Test-OrderRanges }
     "prime" { Test-PrimeNumbers }
     "load" { Test-LoadPattern }
+    "palindrome" { Test-PalindromePattern }
     "edge" { Test-EdgeCases }
     "all" {
         Test-RandomProductIds
@@ -260,10 +323,12 @@ switch ($TestType.ToLower()) {
         Start-Sleep -Seconds 2
         Test-LoadPattern
         Start-Sleep -Seconds 2
+        Test-PalindromePattern
+        Start-Sleep -Seconds 2
         Test-EdgeCases
     }
     default {
-        Write-Host "Invalid test type. Use: random, range, prime, load, edge, or all" -ForegroundColor Red
+        Write-Host "Invalid test type. Use: random, range, prime, load, palindrome, edge, or all" -ForegroundColor Red
     }
 }
 

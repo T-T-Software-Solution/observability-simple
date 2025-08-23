@@ -81,6 +81,12 @@ app.MapGet("/products/{id}", async (int id, int? delayMs, HttpContext httpContex
         logger.LogDebug("Processing prime product {ProductId}", id);
     }
     
+    // ADVANCED EXERCISE BUG 6: CPU spike for palindrome IDs
+    if (bugSim.IsCpuSpikeBugEnabled)
+    {
+        bugSim.ConsumeCpuForPalindrome(id, logger);
+    }
+    
     if (delayMs.HasValue && delayMs.Value > 0)
     {
         logger.LogInformation("Simulating delay of {DelayMs} milliseconds", delayMs.Value);
@@ -274,6 +280,7 @@ public class BugSimulation
     public bool IsMemoryLeakBugEnabled => _configuration.GetValue<bool>("ADVANCED_BUG_MEMORY_LEAK", false);
     public bool IsThreadPoolBugEnabled => _configuration.GetValue<bool>("ADVANCED_BUG_THREAD_POOL", false);
     public bool IsCachePoisoningBugEnabled => _configuration.GetValue<bool>("ADVANCED_BUG_CACHE_POISON", false);
+    public bool IsCpuSpikeBugEnabled => _configuration.GetValue<bool>("ADVANCED_BUG_CPU_SPIKE", false);
     
     public int RequestCount => _requestCount;
     public bool IsCachePoisoned => _cacheCorrupted;
@@ -334,5 +341,48 @@ public class BugSimulation
                 _cacheCorrupted = false;
             }
         });
+    }
+    
+    public bool IsPalindrome(int n)
+    {
+        string str = n.ToString();
+        int left = 0;
+        int right = str.Length - 1;
+        
+        while (left < right)
+        {
+            if (str[left] != str[right])
+                return false;
+            left++;
+            right--;
+        }
+        return true;
+    }
+    
+    public void ConsumeCpuForPalindrome(int id, ILogger logger)
+    {
+        if (IsPalindrome(id))
+        {
+            logger.LogWarning("CPU-intensive operation triggered for palindrome ID: {ProductId}", id);
+            
+            // Consume CPU with intensive calculation
+            var startTime = DateTime.UtcNow;
+            double result = 0;
+            
+            // Perform 50 million iterations of complex math
+            for (int i = 0; i < 50_000_000; i++)
+            {
+                result += Math.Sqrt(i) * Math.Sin(i) * Math.Cos(i);
+                
+                // Add some string operations to stress CPU further
+                if (i % 1000000 == 0)
+                {
+                    _ = $"Processing iteration {i} for palindrome {id}".GetHashCode();
+                }
+            }
+            
+            var duration = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            logger.LogWarning("CPU spike completed for palindrome {ProductId} in {Duration}ms", id, duration);
+        }
     }
 }

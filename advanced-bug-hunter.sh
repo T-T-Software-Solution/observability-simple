@@ -195,9 +195,74 @@ test_load_pattern() {
     fi
 }
 
-# Test 5: Edge Case Test (finds boundary issues)
+# Test 5: Palindrome Pattern Test (finds CPU spike issues)
+test_palindrome_pattern() {
+    echo -e "\n\033[32m[TEST 5] Palindrome Pattern Test\033[0m"
+    echo "Testing palindrome IDs for CPU spike issues..."
+    
+    # Test various palindrome IDs
+    palindromes=(11 22 33 44 55 66 77 88 99 101 111 121 131 141 151 161 171 181 191 202 212 222 232 242 252 1001 1111 1221 1331 1441 1551)
+    non_palindromes=(10 12 13 14 15 16 17 18 19 20 23 24 25 26 27 28 29 30 100 102 103 104 105 106 107 108 109 110 112 113)
+    
+    echo "Testing palindrome IDs..."
+    palindrome_total=0
+    palindrome_count=0
+    
+    for id in "${palindromes[@]:0:10}"; do  # Test first 10 palindromes
+        start=$(date +%s%N)
+        if response=$(curl -s --max-time 15 "$BASE_URL/gateway/products/$id" 2>/dev/null); then
+            end=$(date +%s%N)
+            duration=$(((end - start) / 1000000))
+            palindrome_total=$((palindrome_total + duration))
+            palindrome_count=$((palindrome_count + 1))
+            
+            if [ "$duration" -gt 5000 ]; then
+                echo -n -e "\033[31m!\033[0m"
+            else
+                echo -n -e "\033[32m.\033[0m"
+            fi
+        else
+            echo -n -e "\033[33mX\033[0m"
+        fi
+    done
+    
+    echo -e "\nTesting non-palindrome IDs..."
+    non_palindrome_total=0
+    non_palindrome_count=0
+    
+    for id in "${non_palindromes[@]:0:10}"; do  # Test first 10 non-palindromes
+        start=$(date +%s%N)
+        if response=$(curl -s --max-time 5 "$BASE_URL/gateway/products/$id" 2>/dev/null); then
+            end=$(date +%s%N)
+            duration=$(((end - start) / 1000000))
+            non_palindrome_total=$((non_palindrome_total + duration))
+            non_palindrome_count=$((non_palindrome_count + 1))
+            echo -n -e "\033[32m.\033[0m"
+        else
+            echo -n -e "\033[33mX\033[0m"
+        fi
+    done
+    
+    if [ $palindrome_count -gt 0 ] && [ $non_palindrome_count -gt 0 ]; then
+        avg_palindrome=$((palindrome_total / palindrome_count))
+        avg_non_palindrome=$((non_palindrome_total / non_palindrome_count))
+        
+        echo -e "\n\nResults:"
+        echo -e "\033[33mAverage palindrome ID response time: ${avg_palindrome}ms\033[0m"
+        echo -e "\033[33mAverage non-palindrome ID response time: ${avg_non_palindrome}ms\033[0m"
+        
+        if [ $avg_palindrome -gt $((avg_non_palindrome * 10)) ]; then
+            echo -e "\033[31mCRITICAL: Palindrome IDs cause extreme CPU spikes!\033[0m"
+            ratio=$((avg_palindrome / avg_non_palindrome))
+            echo -e "\033[31mPalindrome requests take ${ratio}x longer!\033[0m"
+            echo -e "\033[36mHypothesis: CPU-intensive processing for palindrome patterns\033[0m"
+        fi
+    fi
+}
+
+# Test 6: Edge Case Test (finds boundary issues)
 test_edge_cases() {
-    echo -e "\n\033[32m[TEST 5] Edge Case Test\033[0m"
+    echo -e "\n\033[32m[TEST 6] Edge Case Test\033[0m"
     echo "Testing edge cases (0, negative, very large IDs)..."
     
     edge_cases=(0 -1 -100 999999 2147483647)
@@ -247,6 +312,9 @@ case "${TEST_TYPE,,}" in
     load)
         test_load_pattern
         ;;
+    palindrome)
+        test_palindrome_pattern
+        ;;
     edge)
         test_edge_cases
         ;;
@@ -259,10 +327,12 @@ case "${TEST_TYPE,,}" in
         sleep 2
         test_load_pattern
         sleep 2
+        test_palindrome_pattern
+        sleep 2
         test_edge_cases
         ;;
     *)
-        echo -e "\033[31mInvalid test type. Use: random, range, prime, load, edge, or all\033[0m"
+        echo -e "\033[31mInvalid test type. Use: random, range, prime, load, palindrome, edge, or all\033[0m"
         ;;
 esac
 

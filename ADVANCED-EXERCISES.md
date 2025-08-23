@@ -19,6 +19,7 @@ export ADVANCED_BUG_ORDER_RANGE=true
 export ADVANCED_BUG_MEMORY_LEAK=true
 export ADVANCED_BUG_THREAD_POOL=true
 export ADVANCED_BUG_CACHE_POISON=true
+export ADVANCED_BUG_CPU_SPIKE=true
 
 # Or in appsettings.json
 {
@@ -26,7 +27,8 @@ export ADVANCED_BUG_CACHE_POISON=true
   "ADVANCED_BUG_ORDER_RANGE": true,
   "ADVANCED_BUG_MEMORY_LEAK": true,
   "ADVANCED_BUG_THREAD_POOL": true,
-  "ADVANCED_BUG_CACHE_POISON": true
+  "ADVANCED_BUG_CACHE_POISON": true,
+  "ADVANCED_BUG_CPU_SPIKE": true
 }
 ```
 
@@ -259,6 +261,70 @@ After requesting an invalid ID, immediately request a valid product. What do you
 <details>
 <summary>Solution</summary>
 The bug: Product IDs ≤ 0 poison the cache for 30 seconds, causing all subsequent requests to return corrupted data. This simulates a cache poisoning vulnerability where invalid input corrupts shared state.
+</details>
+
+---
+
+## Exercise 6: The CPU Spike Syndrome 🔥
+
+### Scenario
+**Customer Report:** "Our monitoring shows massive CPU spikes that max out the server for several seconds. It happens with certain products but we can't identify the pattern. The server becomes unresponsive during these spikes."
+
+### Your Mission
+Identify which product IDs trigger extreme CPU usage and find the pattern.
+
+### Test Generation
+```bash
+# Run the palindrome test
+./advanced-bug-hunter.ps1 -TestType palindrome
+
+# Or test specific palindrome IDs
+curl http://localhost:5001/products/121
+curl http://localhost:5001/products/1221
+curl http://localhost:5001/products/12321
+```
+
+### Investigation Steps
+1. Monitor CPU metrics while testing various product IDs
+2. Query Application Insights for high-duration requests:
+   ```kql
+   requests
+   | where name contains "products"
+   | where duration > 5000
+   | extend productId = tostring(customDimensions.ProductId)
+   | project productId, duration
+   | order by duration desc
+   ```
+3. Look for patterns in the product IDs that cause spikes
+4. Check performance counters during the spike:
+   ```kql
+   performanceCounters
+   | where name == "% Processor Time"
+   | where value > 80
+   | summarize max(value) by bin(timestamp, 10s)
+   | render timechart
+   ```
+
+### Hints (reveal progressively)
+<details>
+<summary>Hint 1</summary>
+Test product IDs that read the same forwards and backwards (like 121, 1001, 12321).
+</details>
+
+<details>
+<summary>Hint 2</summary>
+Consider mathematical or linguistic properties of the numbers. What do we call numbers that are the same when reversed?
+</details>
+
+<details>
+<summary>Solution</summary>
+The bug: Products with palindrome IDs (numbers that read the same forwards and backwards like 121, 131, 1221, 12321) trigger a CPU-intensive calculation that performs 50 million complex mathematical operations. This simulates inefficient algorithm implementation or unnecessary computation for special cases.
+
+Common palindrome IDs to test:
+- Single digit: 1-9
+- Two digits: 11, 22, 33, 44, 55, 66, 77, 88, 99
+- Three digits: 101, 111, 121, 131, 141, 151, 161, 171, 181, 191, 202, 212, etc.
+- Four digits: 1001, 1111, 1221, 1331, 1441, 1551, 1661, 1771, 1881, 1991, 2002, etc.
 </details>
 
 ---
