@@ -1,19 +1,19 @@
-# Advanced Observability Exercises
+# แบบฝึกหัด Observability ขั้นสูง 🕵️‍♂️
 
-These exercises simulate real production issues that require detective work using Azure Application Insights. Each bug is hidden and only manifests under specific conditions.
+แบบฝึกหัดเหล่านี้จำลองปัญหาจริงใน production ที่ต้องใช้ทักษะนักสืบกับ Azure Application Insights ทุก bug ถูกซ่อนอย่างแนบเนียนและจะโผล่มาเฉพาะเงื่อนไขพิเศษเท่านั้น!
 
-## Prerequisites
+## สิ่งที่ต้องเตรียม 📋
 
-1. Both APIs running locally or in Azure
-2. Azure Application Insights configured
-3. Bug features enabled via environment variables
+1. ทั้งสอง API ต้องรันอยู่ (local หรือบน Azure)
+2. ตั้งค่า Azure Application Insights ให้เรียบร้อย
+3. เปิดใช้งาน bug features ผ่าน environment variables
 
-## Enabling Advanced Bugs
+## การเปิดใช้งาน Bug ขั้นสูง 🐛
 
-Set these environment variables in your Downstream API to enable specific bugs:
+ตั้งค่า environment variables เหล่านี้ใน Downstream API เพื่อเปิด bug เฉพาะ:
 
 ```bash
-# Enable all bugs for maximum challenge
+# เปิด bug ทั้งหมดเพื่อความท้าทายสูงสุด!
 export ADVANCED_BUG_HARDCODED_ID=true
 export ADVANCED_BUG_ORDER_RANGE=true
 export ADVANCED_BUG_MEMORY_LEAK=true
@@ -21,7 +21,7 @@ export ADVANCED_BUG_THREAD_POOL=true
 export ADVANCED_BUG_CACHE_POISON=true
 export ADVANCED_BUG_CPU_SPIKE=true
 
-# Or in appsettings.json
+# หรือใส่ใน appsettings.json
 {
   "ADVANCED_BUG_HARDCODED_ID": true,
   "ADVANCED_BUG_ORDER_RANGE": true,
@@ -32,54 +32,57 @@ export ADVANCED_BUG_CPU_SPIKE=true
 }
 ```
 
-## Running the Bug Hunter
+## วิธีรัน Bug Hunter 🏃‍♂️
 
-Use the cross-platform C# test data generator to trigger the bugs:
+ใช้ test data generator ภาษา C# แบบ cross-platform เพื่อกระตุ้น bug:
 
 ```powershell
-# Build the test data generator
+# Build test data generator
 cd test-data-generator
 dotnet build
 
-# Run all tests
+# รันทุกการทดสอบ
 dotnet run -- http://localhost:5000 all
 
-# Run specific test type
-dotnet run -- http://localhost:5000 random   # Test random product IDs
-dotnet run -- http://localhost:5000 range    # Test order ranges
-dotnet run -- http://localhost:5000 prime    # Test prime numbers
-dotnet run -- http://localhost:5000 load     # Test load patterns
-dotnet run -- http://localhost:5000 palindrome # Test palindrome IDs
-dotnet run -- http://localhost:5000 edge     # Test edge cases
+# รันเฉพาะประเภทการทดสอบ
+dotnet run -- http://localhost:5000 random   # ทดสอบ product ID แบบสุ่ม
+dotnet run -- http://localhost:5000 range    # ทดสอบช่วง order
+dotnet run -- http://localhost:5000 prime    # ทดสอบเลขจำนวนเฉพาะ
+dotnet run -- http://localhost:5000 load     # ทดสอบ load patterns
+dotnet run -- http://localhost:5000 palindrome # ทดสอบ palindrome IDs
+dotnet run -- http://localhost:5000 edge     # ทดสอบ edge cases
 ```
+
+![Test Data Generator Console](../documents/console_app_generate_advance_exercise_test_data.png)
+*Console application สำหรับสร้าง test data เพื่อกระตุ้น bug ต่างๆ ในแบบฝึกหัดขั้นสูง*
 
 ---
 
-## Exercise 1: The Mysterious Slow Products 🐌
+## แบบฝึกหัด 1: ปริศนาสินค้าช้าลึกลับ 🐌
 
-### Scenario
-**Customer Report:** "Some product pages load instantly, but others take forever (3+ seconds). It seems random but consistent - the same products are always slow."
+### สถานการณ์
+**รายงานจากลูกค้า:** "บางหน้าสินค้าโหลดเร็วมาก แต่บางอันช้าสุดๆ (3+ วินาที) ดูเหมือนจะสุ่ม แต่สม่ำเสมอ - สินค้าตัวเดิมช้าตลอดเลย"
 
-### Your Mission
-Find which product IDs are experiencing performance issues and identify the pattern.
+### ภารกิจของคุณ
+หาว่า product ID ไหนมีปัญหา performance และหา pattern ให้เจอ
 
-### What You'll See in Logs
+### สิ่งที่จะเห็นใน Logs
 - "Applying enhanced validation for product {ProductId}"
 - "Legacy system validation initiated"
 - "Legacy validation completed"
 
-These logs appear normal - legacy systems are often slow. But why only certain products?
+Log ดูปกติมาก - ระบบเก่าๆ มักจะช้าอยู่แล้ว แต่ทำไมถึงช้าเฉพาะบางสินค้า?
 
-### Test Generation
+### วิธีสร้างการทดสอบ
 ```powershell
-# Run the random product ID test
+# รันการทดสอบ random product ID
 cd test-data-generator
 dotnet run -- http://localhost:5000 random
 ```
 
-### Investigation Steps
-1. Run the test script and observe which IDs are slow
-2. Use Application Insights to query slow requests:
+### ขั้นตอนการสืบสวน
+1. รัน test script แล้วสังเกตว่า ID ไหนช้า
+2. ใช้ Application Insights query หา request ที่ช้า:
    ```kql
    requests
    | where name contains "products"
@@ -87,51 +90,51 @@ dotnet run -- http://localhost:5000 random
    | project productId = tostring(customDimensions.ProductId), duration
    | summarize count() by productId
    ```
-3. Look for patterns in the slow IDs
+3. หา pattern ใน ID ที่ช้า
 
-### Hints (reveal progressively)
+### คำใบ้ (เปิดดูทีละอัน)
 <details>
-<summary>Hint 1</summary>
-Look at the actual ID numbers that are slow. Do they have anything in common?
+<summary>คำใบ้ 1</summary>
+ดูที่ตัวเลข ID ที่ช้า มีอะไรที่เหมือนกันไหม?
 </details>
 
 <details>
-<summary>Hint 2</summary>
-Consider cultural or superstitious significance of certain numbers...
+<summary>คำใบ้ 2</summary>
+ลองคิดถึงความหมายทางวัฒนธรรมหรือความเชื่อเรื่องตัวเลขบางตัว...
 </details>
 
 <details>
-<summary>Solution</summary>
-The bug: Products with "unlucky" IDs (13, 42, 99, 666, 1337, 2024, 9999) have a hardcoded 3-second delay. This simulates legacy code with superstitious developers or special handling for demo/test IDs.
+<summary>เฉลย</summary>
+Bug คือ: สินค้าที่มี ID "ไม่เป็นมงคล" (13, 42, 99, 666, 1337, 2024, 9999) จะมี delay 3 วินาทีที่ hardcode ไว้ เลียนแบบ legacy code ที่มี developer เชื่อเรื่องโชคลางหรือมีการจัดการพิเศษสำหรับ demo/test IDs
 </details>
 
 ---
 
-## Exercise 2: The Order Processing Anomaly 📊
+## แบบฝึกหัด 2: ความผิดปกติการประมวลผลคำสั่งซื้อ 📊
 
-### Scenario
-**Customer Report:** "We're seeing a huge spike in order failures, but only for certain order numbers. Customer service is overwhelmed with complaints about orders in the 1000s range."
+### สถานการณ์
+**รายงานจากลูกค้า:** "เราเห็นจำนวนคำสั่งซื้อที่ล้มเหลวเพิ่มขึ้นมาก แต่เฉพาะเลขคำสั่งซื้อบางช่วง ฝ่ายบริการลูกค้าล้นมือกับการร้องเรียนเรื่องคำสั่งซื้อในช่วง 1000"
 
-### Your Mission
-Identify which order ID ranges are failing and determine the failure pattern.
+### ภารกิจของคุณ
+ระบุว่าช่วง order ID ไหนที่ล้มเหลวและหา pattern ความล้มเหลว
 
-### What You'll See in Logs
+### สิ่งที่จะเห็นใน Logs
 - "Order validation failed for {OrderId}: Database constraint violation"
 - "Order {OrderId} failed validation check against table ORDER_CONSTRAINTS"
 - Exception: "Foreign key constraint FK_ORDER_VALIDATION failed"
 
-Looks like a database issue, but why only specific order ranges?
+ดูเหมือนปัญหา database แต่ทำไมเฉพาะช่วง order บางช่วง?
 
-### Test Generation
+### วิธีสร้างการทดสอบ
 ```powershell
-# Run the order range test
+# รันการทดสอบช่วง order
 cd test-data-generator
 dotnet run -- http://localhost:5000 range
 ```
 
-### Investigation Steps
-1. Run the test script to generate orders from 900-1200
-2. Query Application Insights for failures:
+### ขั้นตอนการสืบสวน
+1. รัน test script เพื่อสร้าง order จาก 900-1200
+2. Query Application Insights หาความล้มเหลว:
    ```kql
    exceptions
    | where message contains "BR-1099"
@@ -139,101 +142,101 @@ dotnet run -- http://localhost:5000 range
    | summarize failureCount = count() by bin(orderId, 10)
    | order by orderId
    ```
-3. Calculate failure rates by range
+3. คำนวณอัตราความล้มเหลวตามช่วง
 
-### Hints (reveal progressively)
+### คำใบ้ (เปิดดูทีละอัน)
 <details>
-<summary>Hint 1</summary>
-Focus on orders between 1000-1099. What's the failure rate in this range?
+<summary>คำใบ้ 1</summary>
+โฟกัสที่ order ระหว่าง 1000-1099 อัตราความล้มเหลวในช่วงนี้เท่าไหร่?
 </details>
 
 <details>
-<summary>Hint 2</summary>
-The error message mentions "BR-1099" - this might be a business rule related to the ID range.
+<summary>คำใบ้ 2</summary>
+Error message พูดถึง "BR-1099" - อาจเป็น business rule ที่เกี่ยวกับช่วง ID นี้
 </details>
 
 <details>
-<summary>Solution</summary>
-The bug: Orders with IDs 1000-1099 fail 90% of the time due to a "business rule BR-1099". This simulates a database constraint or business logic that treats this range as reserved/special.
+<summary>เฉลย</summary>
+Bug คือ: Order ที่มี ID 1000-1099 จะล้มเหลว 90% เพราะ "business rule BR-1099" เลียนแบบ database constraint หรือ business logic ที่ถือว่าช่วงนี้เป็นช่วงสงวน/พิเศษ
 </details>
 
 ---
 
-## Exercise 3: The Memory Leak Mystery 💾
+## แบบฝึกหัด 3: ปริศนา Memory Leak 💾
 
-### Scenario
-**Customer Report:** "The API server memory usage keeps growing throughout the day. We have to restart it every night. The leak seems to correlate with certain product views."
+### สถานการณ์
+**รายงานจากลูกค้า:** "Memory ของ API server เพิ่มขึ้นเรื่อยๆ ตลอดทั้งวัน ต้อง restart ทุกคืน Memory leak ดูเหมือนจะเกี่ยวกับการดูสินค้าบางตัว"
 
-### Your Mission
-Find which product IDs are causing memory leaks.
+### ภารกิจของคุณ
+หาว่า product ID ไหนทำให้เกิด memory leak
 
-### What You'll See in Logs
+### สิ่งที่จะเห็นใน Logs
 - "Initializing product cache for {ProductId}"
 - "Product {ProductId} cached for performance optimization"
 
-Normal caching behavior, right? But why isn't memory being released?
+การทำ cache ปกติใช่ไหม? แต่ทำไม memory ไม่ถูกคืน?
 
-### Test Generation
+### วิธีสร้างการทดสอบ
 ```powershell
-# Run the prime number test
+# รันการทดสอบเลขจำนวนเฉพาะ
 cd test-data-generator
 dotnet run -- http://localhost:5000 prime
 ```
 
-### Investigation Steps
-1. Monitor memory metrics while running the test
-2. Query for patterns:
+### ขั้นตอนการสืบสวน
+1. Monitor memory metrics ขณะรันการทดสอบ
+2. Query หา patterns:
    ```kql
    customMetrics
    | where name contains "Memory"
    | summarize avg(value) by bin(timestamp, 1m)
    | render timechart
    ```
-3. Correlate memory spikes with specific product IDs
+3. เชื่อมโยง memory spikes กับ product ID เฉพาะ
 
-### Hints (reveal progressively)
+### คำใบ้ (เปิดดูทีละอัน)
 <details>
-<summary>Hint 1</summary>
-Test both prime and non-prime product IDs. Compare the performance.
+<summary>คำใบ้ 1</summary>
+ทดสอบทั้ง prime และ non-prime product IDs เปรียบเทียบ performance
 </details>
 
 <details>
-<summary>Hint 2</summary>
-Prime numbers are special in mathematics. Maybe they're special in the code too?
+<summary>คำใบ้ 2</summary>
+เลขจำนวนเฉพาะพิเศษในวิชาคณิตศาสตร์ บางทีอาจพิเศษใน code ด้วย?
 </details>
 
 <details>
-<summary>Solution</summary>
-The bug: Products with prime number IDs leak 5MB of memory per unique prime ID accessed. The memory is never released, simulating a cache that doesn't evict prime number entries.
+<summary>เฉลย</summary>
+Bug คือ: สินค้าที่มี ID เป็นจำนวนเฉพาะจะ leak memory 5MB ต่อ prime ID ที่ไม่ซ้ำ Memory ไม่เคยถูกคืน เลียนแบบ cache ที่ไม่ลบ entry ของจำนวนเฉพาะ
 </details>
 
 ---
 
-## Exercise 4: The Periodic Performance Problem ⏰
+## แบบฝึกหัด 4: ปัญหา Performance เป็นรอบ ⏰
 
-### Scenario
-**Customer Report:** "Every few requests, the system freezes for 5 seconds. It's killing our user experience during peak hours."
+### สถานการณ์
+**รายงานจากลูกค้า:** "ทุกๆ สองสาม request ระบบจะค้างไป 5 วินาที มันทำลาย user experience ช่วง peak hours"
 
-### Your Mission
-Identify the pattern causing periodic slowdowns.
+### ภารกิจของคุณ
+ระบุ pattern ที่ทำให้เกิดความช้าเป็นรอบ
 
-### What You'll See in Logs
+### สิ่งที่จะเห็นใน Logs
 - "Starting scheduled maintenance task"
 - "Synchronous database cleanup initiated for request {RequestNumber}"
 - "Maintenance task completed"
 
-Maintenance is normal, but why is it running during peak hours and blocking requests?
+Maintenance เป็นเรื่องปกติ แต่ทำไมรันช่วง peak hours และ block requests?
 
-### Test Generation
+### วิธีสร้างการทดสอบ
 ```powershell
-# Run the load pattern test
+# รันการทดสอบ load pattern
 cd test-data-generator
 dotnet run -- http://localhost:5000 load
 ```
 
-### Investigation Steps
-1. Send 50 rapid requests and observe the pattern
-2. Query for slow requests:
+### ขั้นตอนการสืบสวน
+1. ส่ง request เร็วๆ 50 อันแล้วสังเกต pattern
+2. Query หา slow requests:
    ```kql
    requests
    | where duration > 3000
@@ -241,51 +244,51 @@ dotnet run -- http://localhost:5000 load
    | project requestNumber, duration
    | order by requestNumber
    ```
-3. Look for mathematical patterns in request numbers
+3. หา pattern ทางคณิตศาสตร์ใน request numbers
 
-### Hints (reveal progressively)
+### คำใบ้ (เปิดดูทีละอัน)
 <details>
-<summary>Hint 1</summary>
-Count the request numbers that are slow. Is there a pattern like every Nth request?
+<summary>คำใบ้ 1</summary>
+นับเลข request ที่ช้า มี pattern แบบทุกๆ N request ไหม?
 </details>
 
 <details>
-<summary>Hint 2</summary>
-Check if slow request positions are divisible by a specific number.
+<summary>คำใบ้ 2</summary>
+เช็คว่าตำแหน่ง request ที่ช้าหารด้วยเลขเฉพาะลงตัวไหม
 </details>
 
 <details>
-<summary>Solution</summary>
-The bug: Every 10th request blocks a thread for 5 seconds, simulating thread pool exhaustion. This represents a common production issue where periodic batch processing interferes with request handling.
+<summary>เฉลย</summary>
+Bug คือ: ทุก request ที่ 10 จะ block thread 5 วินาที เลียนแบบ thread pool exhaustion ปัญหาใน production ทั่วไปที่ batch processing เป็นระยะรบกวน request handling
 </details>
 
 ---
 
-## Exercise 5: The Cache Corruption Catastrophe 🔥
+## แบบฝึกหัด 5: หายนะ Cache เสียหาย 🔥
 
-### Scenario
-**Customer Report:** "Sometimes all products show as 'CORRUPTED_DATA' with price -1. It fixes itself after about 30 seconds, but customers are panicking."
+### สถานการณ์
+**รายงานจากลูกค้า:** "บางครั้งสินค้าทั้งหมดแสดงเป็น 'CORRUPTED_DATA' ราคา -1 มันหายเองหลัง 30 วินาที แต่ลูกค้าตื่นตระหนกมาก!"
 
-### Your Mission
-Find what triggers cache corruption.
+### ภารกิจของคุณ
+หาว่าอะไรทำให้ cache เสียหาย
 
-### What You'll See in Logs
+### สิ่งที่จะเห็นใน Logs
 - "Cache miss for product {ProductId}, loading from database"
 - "Unexpected data format for product {ProductId}, using fallback values"
 
-Seems like a data format issue, but why does it affect ALL subsequent requests?
+ดูเหมือนปัญหา data format แต่ทำไมกระทบ request หลังจากนั้นทั้งหมด?
 
-### Test Generation
+### วิธีสร้างการทดสอบ
 ```powershell
-# Run the edge case test
+# รันการทดสอบ edge case
 cd test-data-generator
 dotnet run -- http://localhost:5000 edge
 ```
 
-### Investigation Steps
-1. Test edge cases (0, negative, very large IDs)
-2. Monitor subsequent normal requests
-3. Query for corrupted responses:
+### ขั้นตอนการสืบสวน
+1. ทดสอบ edge cases (0, ติดลบ, ID ใหญ่มาก)
+2. Monitor request ปกติหลังจากนั้น
+3. Query หา corrupted responses:
    ```kql
    requests
    | where responseCode == 200
@@ -294,54 +297,54 @@ dotnet run -- http://localhost:5000 edge
    | project timestamp, productId = customDimensions.ProductId
    ```
 
-### Hints (reveal progressively)
+### คำใบ้ (เปิดดูทีละอัน)
 <details>
-<summary>Hint 1</summary>
-What happens when you request product ID 0 or negative IDs?
+<summary>คำใบ้ 1</summary>
+จะเกิดอะไรขึ้นเมื่อ request product ID 0 หรือ ID ติดลบ?
 </details>
 
 <details>
-<summary>Hint 2</summary>
-After requesting an invalid ID, immediately request a valid product. What do you see?
+<summary>คำใบ้ 2</summary>
+หลังจาก request ID ที่ผิด ลอง request สินค้าปกติทันที เห็นอะไรไหม?
 </details>
 
 <details>
-<summary>Solution</summary>
-The bug: Product IDs ≤ 0 poison the cache for 30 seconds, causing all subsequent requests to return corrupted data. This simulates a cache poisoning vulnerability where invalid input corrupts shared state.
+<summary>เฉลย</summary>
+Bug คือ: Product ID ≤ 0 จะทำให้ cache เสียหาย 30 วินาที ทำให้ request หลังจากนั้นทั้งหมดได้ข้อมูลเสียหาย เลียนแบบช่องโหว่ cache poisoning ที่ input ผิดทำให้ shared state เสียหาย
 </details>
 
 ---
 
-## Exercise 6: The CPU Spike Syndrome 🔥
+## แบบฝึกหัด 6: อาการ CPU พุ่งสูง 🔥
 
-### Scenario
-**Customer Report:** "Our monitoring shows massive CPU spikes that max out the server for several seconds. It happens with certain products but we can't identify the pattern. The server becomes unresponsive during these spikes."
+### สถานการณ์
+**รายงานจากลูกค้า:** "Monitoring เราแสดง CPU spikes รุนแรงที่ทำให้ server เต็ม 100% หลายวินาที มันเกิดกับสินค้าบางตัวแต่เราหา pattern ไม่เจอ Server ไม่ตอบสนองเลยช่วง spike"
 
-### Your Mission
-Identify which product IDs trigger extreme CPU usage and find the pattern.
+### ภารกิจของคุณ
+ระบุว่า product ID ไหนทำให้ CPU ใช้งานสูงมากและหา pattern
 
-### What You'll See in Logs
+### สิ่งที่จะเห็นใน Logs
 - "Calculating recommendations for product {ProductId}"
 - "Running similarity analysis for product {ProductId}"
 - "Recommendation calculation completed in {ElapsedMs}ms"
 
-Recommendation engines can be CPU-intensive, but why are some products taking 10-100x longer?
+Recommendation engine ใช้ CPU เยอะเป็นปกติ แต่ทำไมบางสินค้าใช้เวลานาน 10-100 เท่า?
 
-### Test Generation
+### วิธีสร้างการทดสอบ
 ```powershell
-# Run the palindrome test
+# รันการทดสอบ palindrome
 cd test-data-generator
 dotnet run -- http://localhost:5000 palindrome
 
-# Or test specific palindrome IDs
+# หรือทดสอบ palindrome ID เฉพาะ
 Invoke-RestMethod http://localhost:5001/products/121
 Invoke-RestMethod http://localhost:5001/products/1221
 Invoke-RestMethod http://localhost:5001/products/12321
 ```
 
-### Investigation Steps
-1. Monitor CPU metrics while testing various product IDs
-2. Query Application Insights for high-duration requests:
+### ขั้นตอนการสืบสวน
+1. Monitor CPU metrics ขณะทดสอบ product ID ต่างๆ
+2. Query Application Insights หา request ที่นาน:
    ```kql
    requests
    | where name contains "products"
@@ -350,8 +353,8 @@ Invoke-RestMethod http://localhost:5001/products/12321
    | project productId, duration
    | order by duration desc
    ```
-3. Look for patterns in the product IDs that cause spikes
-4. Check performance counters during the spike:
+3. หา pattern ใน product ID ที่ทำให้เกิด spike
+4. เช็ค performance counters ช่วง spike:
    ```kql
    performanceCounters
    | where name == "% Processor Time"
@@ -360,71 +363,93 @@ Invoke-RestMethod http://localhost:5001/products/12321
    | render timechart
    ```
 
-### Hints (reveal progressively)
+### คำใบ้ (เปิดดูทีละอัน)
 <details>
-<summary>Hint 1</summary>
-Test product IDs that read the same forwards and backwards (like 121, 1001, 12321).
+<summary>คำใบ้ 1</summary>
+ทดสอบ product ID ที่อ่านจากหน้าไปหลังได้เหมือนกัน (เช่น 121, 1001, 12321)
 </details>
 
 <details>
-<summary>Hint 2</summary>
-Consider mathematical or linguistic properties of the numbers. What do we call numbers that are the same when reversed?
+<summary>คำใบ้ 2</summary>
+คิดถึงคุณสมบัติทางคณิตศาสตร์หรือภาษาศาสตร์ของตัวเลข เราเรียกเลขที่กลับหน้าหลังแล้วเหมือนเดิมว่าอะไร?
 </details>
 
 <details>
-<summary>Solution</summary>
-The bug: Products with palindrome IDs (numbers that read the same forwards and backwards like 121, 131, 1221, 12321) trigger a CPU-intensive calculation that performs 50 million complex mathematical operations. This simulates inefficient algorithm implementation or unnecessary computation for special cases.
+<summary>เฉลย</summary>
+Bug คือ: สินค้าที่มี palindrome ID (เลขที่อ่านจากหน้าไปหลังเหมือนกัน เช่น 121, 131, 1221, 12321) จะทำให้เกิดการคำนวณหนักที่ทำ mathematical operations 50 ล้านครั้ง เลียนแบบ algorithm ที่ไม่ efficient หรือคำนวณที่ไม่จำเป็นสำหรับ special cases
 
-Common palindrome IDs to test:
-- Single digit: 1-9
-- Two digits: 11, 22, 33, 44, 55, 66, 77, 88, 99
-- Three digits: 101, 111, 121, 131, 141, 151, 161, 171, 181, 191, 202, 212, etc.
-- Four digits: 1001, 1111, 1221, 1331, 1441, 1551, 1661, 1771, 1881, 1991, 2002, etc.
+Palindrome ID ทั่วไปที่ควรทดสอบ:
+- หลักเดียว: 1-9
+- สองหลัก: 11, 22, 33, 44, 55, 66, 77, 88, 99
+- สามหลัก: 101, 111, 121, 131, 141, 151, 161, 171, 181, 191, 202, 212, ฯลฯ
+- สี่หลัก: 1001, 1111, 1221, 1331, 1441, 1551, 1661, 1771, 1881, 1991, 2002, ฯลฯ
 </details>
 
 ---
 
-## 🔍 Production-Like Bug Hunting
+## 📸 ตัวอย่างผลลัพธ์ใน Azure Application Insights
 
-### The Realistic Challenge
+### การตรวจจับ Performance Issues
+![Slow Transactions in Azure](../documents/result_slow_transection_in_azure.png)
+*ตัวอย่างการแสดง slow transactions ใน Application Insights - สังเกต response time ที่สูงผิดปกติ*
 
-**No obvious bug indicators** - just like real production! You won't find:
-- No "BUG DETECTED" messages
-- No "BugTriggered" events  
-- No explicit code locations
-- No bug type labels
+![Multiple Slow Transactions](../documents/result_many_slow_transection_in_azure.png)
+*การแสดง pattern ของ slow transactions หลายรายการ - ช่วยในการวิเคราะห์หา root cause*
 
-### What You WILL Find
+### การตรวจจับ Failures
+![Failed Transactions](../documents/result_fail_transection_in_azure_by_calling_api.png)
+*Dashboard แสดง failed transactions จากการเรียก API - สังเกต error rate และ status codes*
 
-Just like in production, you'll see:
-- Normal business logic logs ("Applying enhanced validation", "Starting maintenance task")
+### การ Monitor Resource Usage
+![CPU Spike Detection](../documents/result_cpu_peak_in_azure.png)
+*กราฟแสดง CPU spike ใน Azure Monitor - ช่วยระบุช่วงเวลาที่มีปัญหา performance*
+
+![Live CPU and Memory Monitoring](../documents/result_cpu_ram_peak_in_azure_live_monitor.png)
+*Live monitoring dashboard แสดง CPU และ Memory usage แบบ real-time*
+
+---
+
+## 🔍 การล่า Bug แบบ Production จริง
+
+### ความท้าทายแบบสมจริง
+
+**ไม่มีสัญญาณ bug ที่ชัดเจน** - เหมือน production จริงๆ! คุณจะไม่เจอ:
+- ไม่มีข้อความ "BUG DETECTED"
+- ไม่มี event "BugTriggered"  
+- ไม่มีการบอกตำแหน่ง code
+- ไม่มี label ประเภท bug
+
+### สิ่งที่คุณจะเจอ
+
+เหมือนใน production คุณจะเห็น:
+- Business logic logs ปกติ ("Applying enhanced validation", "Starting maintenance task")
 - Performance metrics (latency, CPU, memory)
-- Error patterns and exceptions
+- Error patterns และ exceptions
 - Request correlations
 
-### How to Hunt Bugs Like a Pro
+### วิธีล่า Bug แบบมืออาชีพ
 
-1. **Generate Traffic**: Use the test data generator to create load
-2. **Observe Patterns**: Look for anomalies in Application Insights
-3. **Correlate Symptoms**: Match performance issues with request patterns
-4. **Form Hypotheses**: Use the data to guess what's happening
-5. **Validate Theory**: Test specific scenarios to confirm
+1. **สร้าง Traffic**: ใช้ test data generator สร้าง load
+2. **สังเกต Patterns**: หา anomalies ใน Application Insights
+3. **เชื่อมโยงอาการ**: จับคู่ปัญหา performance กับ request patterns
+4. **ตั้งสมมติฐาน**: ใช้ข้อมูลคาดเดาว่าเกิดอะไรขึ้น
+5. **ยืนยันทฤษฎี**: ทดสอบ scenario เฉพาะเพื่อยืนยัน
 
-### Detective Work Required
+### งานสืบสวนที่ต้องทำ
 
-| Symptom | What to Look For | Investigation Approach |
-|---------|------------------|------------------------|
-| Slow requests | Duration > 2000ms | Group by ProductId, look for patterns |
-| High failure rate | Status 500/503 | Analyze by OrderId ranges |
-| Memory growth | Increasing memory metrics | Correlate with specific ProductIds |
-| CPU spikes | CPU > 80% | Match with request timings |
-| Data corruption | Unexpected response values | Track when corruption starts |
+| อาการ | ต้องมองหา | วิธีสืบสวน |
+|-------|-----------|-----------|
+| Request ช้า | Duration > 2000ms | จัดกลุ่มตาม ProductId หา patterns |
+| Failure rate สูง | Status 500/503 | วิเคราะห์ตามช่วง OrderId |
+| Memory โต | Memory metrics เพิ่มขึ้น | เชื่อมโยงกับ ProductIds เฉพาะ |
+| CPU spikes | CPU > 80% | จับคู่กับ request timings |
+| Data เสียหาย | Response values ผิดปกติ | ติดตามว่าเริ่มเสียหายเมื่อไหร่ |
 
 ---
 
-## KQL Queries for Realistic Investigation
+## KQL Queries สำหรับการสืบสวนแบบสมจริง
 
-### Find Slow Products (No Bug Labels!)
+### หาสินค้าที่ช้า (ไม่มี Bug Labels!)
 ```kql
 requests
 | where name contains "products"
@@ -437,10 +462,10 @@ requests
     by ProductId
 | where Count > 2
 | order by AvgDuration desc
-// Look for patterns in the slow ProductIds - what do they have in common?
+// ดู pattern ใน ProductIds ที่ช้า - มีอะไรเหมือนกันไหม?
 ```
 
-### Analyze Order Failures by Range
+### วิเคราะห์ Order Failures ตามช่วง
 ```kql
 exceptions
 | where message contains "constraint" or message contains "validation"
@@ -450,10 +475,10 @@ exceptions
     FailureRate = count() * 100.0 / 301.0
     by OrderRange = bin(OrderId, 100)
 | order by OrderRange
-// Which order ranges have unusually high failure rates?
+// ช่วง order ไหนมี failure rate สูงผิดปกติ?
 ```
 
-### Memory Growth Pattern Detection
+### ตรวจจับ Pattern การเติบโตของ Memory
 ```kql
 performanceCounters
 | where name == "Private Bytes"
@@ -465,10 +490,10 @@ performanceCounters
     | summarize RequestCount = count() by bin(timestamp, 1m), ProductId
 ) on timestamp
 | order by timestamp
-// Does memory growth correlate with specific ProductIds?
+// Memory growth สัมพันธ์กับ ProductIds เฉพาะไหม?
 ```
 
-### Find Request Patterns in Slowdowns
+### หา Request Patterns ในช่วงช้า
 ```kql
 requests
 | where duration > 3000
@@ -480,14 +505,14 @@ requests
     AvgDuration = avg(duration)
     by PatternCheck
 | order by PatternCheck
-// Is there a pattern in which requests are slow?
+// มี pattern ว่า request ไหนช้าไหม?
 ```
 
 ---
 
-## KQL Queries for Investigation
+## KQL Queries สำหรับการสืบสวน
 
-### Find Patterns in Slow Requests
+### หา Patterns ใน Slow Requests
 ```kql
 requests
 | where timestamp > ago(1h)
@@ -502,7 +527,7 @@ requests
 | order by avgDuration desc
 ```
 
-### Identify Failure Clusters
+### ระบุกลุ่มความล้มเหลว
 ```kql
 exceptions
 | where timestamp > ago(1h)
@@ -511,7 +536,7 @@ exceptions
 | render columnchart
 ```
 
-### Track Memory Growth
+### ติดตามการเติบโตของ Memory
 ```kql
 performanceCounters
 | where name == "Private Bytes"
@@ -520,7 +545,7 @@ performanceCounters
 | render timechart
 ```
 
-### Detect Thread Pool Issues
+### ตรวจจับปัญหา Thread Pool
 ```kql
 requests
 | where timestamp > ago(30m)
@@ -534,29 +559,29 @@ requests
 
 ---
 
-## Success Criteria
+## เกณฑ์ความสำเร็จ ✅
 
-For each exercise, you've succeeded when you can:
-1. ✅ Identify the exact condition triggering the bug
-2. ✅ Provide evidence from Application Insights
-3. ✅ Explain why this pattern would cause issues in production
-4. ✅ Suggest a fix or mitigation strategy
+สำหรับแต่ละแบบฝึกหัด คุณจะสำเร็จเมื่อสามารถ:
+1. ✅ ระบุเงื่อนไขที่ทำให้เกิด bug ได้แม่นยำ
+2. ✅ แสดงหลักฐานจาก Application Insights
+3. ✅ อธิบายว่าทำไม pattern นี้ถึงทำให้เกิดปัญหาใน production
+4. ✅ เสนอวิธีแก้ไขหรือ mitigation strategy
 
-## Learning Outcomes
+## สิ่งที่จะได้เรียนรู้ 🎓
 
-After completing these exercises, you'll understand:
-- How to identify patterns in telemetry data
-- Common production bug patterns
-- The importance of comprehensive monitoring
-- How edge cases can affect system stability
-- Why load testing with varied inputs is crucial
+หลังจากทำแบบฝึกหัดเหล่านี้เสร็จ คุณจะเข้าใจ:
+- วิธีระบุ patterns ในข้อมูล telemetry
+- Bug patterns ทั่วไปใน production
+- ความสำคัญของ comprehensive monitoring
+- Edge cases ส่งผลต่อ system stability อย่างไร
+- ทำไม load testing ด้วย input ที่หลากหลายถึงสำคัญ
 
-## Next Steps
+## ขั้นตอนต่อไป 🚀
 
-1. Try enabling different combinations of bugs
-2. Create custom KQL queries to detect these issues automatically
-3. Set up Azure Monitor alerts for these patterns
-4. Practice explaining findings to non-technical stakeholders
-5. Design your own hidden bugs for team training
+1. ลองเปิด bug combinations ต่างๆ
+2. สร้าง custom KQL queries เพื่อตรวจจับปัญหาเหล่านี้อัตโนมัติ
+3. ตั้ง Azure Monitor alerts สำหรับ patterns เหล่านี้
+4. ฝึกอธิบายสิ่งที่พบให้คนที่ไม่ใช่ technical เข้าใจ
+5. ออกแบบ hidden bugs ของคุณเองสำหรับฝึกทีม
 
-Remember: In production, these bugs would be much harder to find without proper observability tools!
+จำไว้ว่า: ใน production bug พวกนี้จะหายากกว่านี้มากถ้าไม่มี observability tools ที่ดี! 🕵️‍♂️

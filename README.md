@@ -1,21 +1,21 @@
-# Observability Learning Platform
+# แพลตฟอร์มเรียนรู้ Observability 🔍
 
-A microservices-based learning platform designed to demonstrate modern observability practices using Azure Application Insights. This system consists of two .NET 8 Web APIs that simulate real-world performance issues for learning and diagnostics purposes.
+ระบบ microservices สุดเจ๋งที่ออกแบบมาเพื่อให้คุณได้เรียนรู้วิธีการทำ observability แบบทันสมัยด้วย Azure Application Insights ครับ! ระบบนี้ประกอบด้วย .NET 8 Web APIs สองตัวที่จะจำลองปัญหา performance ต่างๆ ที่เจอในโลกจริง เพื่อให้คุณได้ฝึกวิเคราะห์และแก้ปัญหาแบบมืออาชีพ
 
-## Overview
+## ภาพรวมระบบ 🚀
 
-The platform simulates a distributed system with intentional performance issues to help developers learn:
-- **Latency Analysis**: Identify which service causes slowness in a distributed call chain
-- **Root Cause Analysis**: Trace errors from user-facing APIs to backend services
-- **Resource Monitoring**: Observe CPU and memory usage impacts in real-time
-- **Distributed Tracing**: Correlate requests across service boundaries
+แพลตฟอร์มนี้จำลองระบบ distributed พร้อมปัญหา performance ต่างๆ ที่ตั้งใจใส่เข้าไป เพื่อให้นักพัฒนาได้เรียนรู้:
+- **Latency Analysis**: หาว่า service ไหนทำให้ระบบช้าในสาย distributed call
+- **Root Cause Analysis**: ตามรอย error จาก API หน้าบ้านไปยัง service หลังบ้าน
+- **Resource Monitoring**: ดูผลกระทบของการใช้ CPU และ memory แบบ real-time
+- **Distributed Tracing**: เชื่อมโยง request ข้ามขอบเขตของ service ต่างๆ
 
-## Architecture
+## สถาปัตยกรรม 🏗️
 
 ```
 ┌─────────────┐         ┌─────────────┐         ┌──────────────────┐
 │   Client    │ ──────> │ Upstream API│ ──────> │ Downstream API   │
-│             │         │  (Port 5000)│         │   (Port 5001)    │
+│  (ลูกค้า)    │         │  (Port 5000)│         │   (Port 5001)    │
 └─────────────┘         └─────────────┘         └──────────────────┘
                                │                          │
                                └──────────┬───────────────┘
@@ -26,249 +26,255 @@ The platform simulates a distributed system with intentional performance issues 
                                  └─────────────────┘
 ```
 
-## Prerequisites
+## สิ่งที่ต้องเตรียม 📋
 
-### Local Development
-- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
-- Visual Studio 2022 or VS Code (optional)
+### สำหรับ Local Development
+- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) - ติดตั้งให้เรียบร้อยนะครับ
+- Visual Studio 2022 หรือ VS Code (ถ้าชอบ)
 
-### Azure Deployment
-- Azure subscription
-- [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli) installed
+### สำหรับ Azure Deployment
+- Azure subscription (ต้องมีนะ ไม่งั้นเล่นไม่ได้)
+- [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli) ติดตั้งซะ
 - Azure Application Insights resource
-- Azure App Service or Azure Container Apps
+- Azure App Service หรือ Azure Container Apps
 
-## Quick Start
+## เริ่มใช้งานด่วน ⚡
 
-1. **Clone the repository**
+1. **Clone repository มาก่อน**
    ```powershell
    git clone <repository-url>
    cd observability-simple
    ```
 
-2. **Build the solution**
+2. **Build solution ซะหน่อย**
    ```powershell
    dotnet build
    ```
 
-3. **Azure Setup** (For Azure deployment)
+3. **ตั้งค่า Azure** (สำหรับ deploy ขึ้น Azure)
    
-   Ensure you have Azure CLI installed and login:
+   ตรวจสอบว่าติดตั้ง Azure CLI แล้ว และ login เข้าระบบ:
    ```powershell
-   # Check if Azure CLI is installed
+   # เช็คว่าติดตั้ง Azure CLI หรือยัง
    az --version
    
-   # If not installed, install from: https://aka.ms/installazurecliwindows
+   # ถ้ายังไม่ติดตั้ง ไปโหลดมาจาก: https://aka.ms/installazurecliwindows
    
-   # Login to Azure
+   # Login เข้า Azure
    az login
    ```
    
-   This will open a browser window for authentication. After successful login:
+   มันจะเปิด browser ให้ใส่รหัสผ่าน พอ login สำเร็จแล้ว:
    ```powershell
-   # Verify you're logged in and check your subscription
+   # เช็คดูว่า login ได้จริงไหม และดู subscription
    az account show
    
-   # If you have multiple subscriptions, list them
+   # ถ้ามีหลาย subscription ก็ list ดูหน่อย
    az account list --output table
    
-   # Set the correct subscription if needed
-   az account set --subscription "your-subscription-name-or-id"
+   # เลือก subscription ที่จะใช้ (ถ้าต้องการ)
+   az account set --subscription "ชื่อหรือ-id-subscription-ของคุณ"
    ```
 
-4. **Deploy to Azure** (Recommended)
+4. **Deploy ขึ้น Azure** (แนะนำวิธีนี้เลย!)
    
-   Use the PowerShell scripts to deploy to Azure:
+   ใช้ PowerShell script รันง่ายๆ:
    ```powershell
-   # Create all Azure resources (one time)
+   # สร้าง Azure resources ทั้งหมด (ทำครั้งเดียว)
    .\create-azure-resources.ps1
    
-   # Deploy applications
+   # Deploy แอพพลิเคชั่น
    .\deploy-apps-only.ps1
    ```
    
-   The scripts will automatically configure Application Insights and all settings.
+   Script จะจัดการ Application Insights และการตั้งค่าทั้งหมดให้อัตโนมัติเลย!
    
-   Update both APIs' `appsettings.json`:
+   อัพเดท `appsettings.json` ของทั้งสอง API:
    ```json
    "ApplicationInsights": {
-     "ConnectionString": "InstrumentationKey=YOUR_KEY;IngestionEndpoint=https://eastus-8.in.applicationinsights.azure.com/;LiveEndpoint=https://eastus.livediagnostics.monitor.azure.com/"
+     "ConnectionString": "InstrumentationKey=KEY_ของคุณ;IngestionEndpoint=https://eastus-8.in.applicationinsights.azure.com/;LiveEndpoint=https://eastus.livediagnostics.monitor.azure.com/"
    }
    ```
 
-5. **Run Locally** (Alternative to Azure deployment)
+5. **รันใน Local** (ถ้าไม่อยาก deploy)
    
-   For local development, run both APIs:
+   รันทั้งสอง API พร้อมกัน:
    ```powershell
-   # In first PowerShell window - start downstream API
+   # เปิด PowerShell หน้าต่างแรก - รัน downstream API
    cd downstream-api/DownstreamApi
    dotnet run
-   # API starts on http://localhost:5001
+   # API จะรันที่ http://localhost:5001
    
-   # In second PowerShell window - start upstream API
+   # เปิด PowerShell หน้าต่างที่สอง - รัน upstream API
    cd upstream-api/UpstreamApi  
    dotnet run
-   # API starts on http://localhost:5000
+   # API จะรันที่ http://localhost:5000
    ```
 
-6. **Access Swagger UI**
+6. **เข้าดู Swagger UI ได้เลย**
    - Local Downstream API: http://localhost:5001/swagger
    - Local Upstream API: http://localhost:5000/swagger
-   - Azure Upstream API: https://your-upstream-app.azurewebsites.net/swagger
+   - Azure Upstream API: https://app-ของคุณ.azurewebsites.net/swagger
 
-## API Endpoints
+## API Endpoints ที่มีให้เล่น 🎮
 
 ### Downstream API (Port 5001)
 
-| Endpoint | Method | Description | Parameters |
-|----------|--------|-------------|------------|
-| `/products/{id}` | GET | Get product information with optional latency | `id` (path), `delayMs` (query, optional) |
-| `/orders` | POST | Create order with failure simulation | `failureMode` (query: none/transient/persistent) |
-| `/pressure/cpu` | GET | Simulate CPU-intensive operation | `iterations` (query, optional) |
-| `/pressure/memory` | GET | Simulate memory allocation | `mbToAllocate` (query, optional) |
+| Endpoint | Method | คำอธิบาย | Parameters |
+|----------|--------|----------|------------|
+| `/products/{id}` | GET | ดึงข้อมูลสินค้า พร้อมความช้าที่ปรับได้ | `id` (path), `delayMs` (query, ไม่บังคับ) |
+| `/orders` | POST | สร้างคำสั่งซื้อ พร้อมจำลองความล้มเหลว | `failureMode` (query: none/transient/persistent) |
+| `/pressure/cpu` | GET | จำลองการทำงานหนักของ CPU | `iterations` (query, ไม่บังคับ) |
+| `/pressure/memory` | GET | จำลองการใช้ memory | `mbToAllocate` (query, ไม่บังคับ) |
 
 ### Upstream API (Port 5000)
 
-| Endpoint | Method | Description | Parameters |
-|----------|--------|-------------|------------|
-| `/gateway/products/{id}` | GET | Gateway to downstream products endpoint | `id` (path), `delayMs` (query, optional) |
-| `/gateway/orders` | POST | Gateway to downstream orders endpoint | `failureMode` (query, optional) |
+| Endpoint | Method | คำอธิบาย | Parameters |
+|----------|--------|----------|------------|
+| `/gateway/products/{id}` | GET | Gateway ไปยัง downstream products | `id` (path), `delayMs` (query, ไม่บังคับ) |
+| `/gateway/orders` | POST | Gateway ไปยัง downstream orders | `failureMode` (query, ไม่บังคับ) |
 
-## Testing Scenarios
+## สถานการณ์ทดสอบ 🧪
 
-### 1. Latency Simulation
-Test slow response times:
+### 1. จำลองความช้า (Latency Simulation)
+ทดสอบ response time ที่ช้า:
 ```powershell
-# Normal response
+# Response ปกติ
 Invoke-RestMethod http://localhost:5001/products/123
 
-# With 2-second delay
+# ช้า 2 วินาที
 Invoke-RestMethod "http://localhost:5001/products/123?delayMs=2000"
 
-# Through gateway with delay
+# ผ่าน gateway พร้อมความช้า
 Invoke-RestMethod "http://localhost:5000/gateway/products/456?delayMs=1500"
 ```
 
-### 2. Error Simulation
-Test different failure modes:
+### 2. จำลองข้อผิดพลาด (Error Simulation)
+ทดสอบ failure modes ต่างๆ:
 ```powershell
-# Success scenario
+# สถานการณ์สำเร็จ
 Invoke-RestMethod -Uri http://localhost:5001/orders -Method Post
 
-# Transient failure (50% chance)
+# ความล้มเหลวชั่วคราว (โอกาส 50%)
 Invoke-RestMethod -Uri "http://localhost:5001/orders?failureMode=transient" -Method Post
 
-# Persistent failure (100% failure)
+# ล้มเหลวตลอด (100% พัง)
 Invoke-RestMethod -Uri "http://localhost:5001/orders?failureMode=persistent" -Method Post
 
-# Through gateway
+# ผ่าน gateway
 Invoke-RestMethod -Uri "http://localhost:5000/gateway/orders?failureMode=transient" -Method Post
 ```
 
-### 3. CPU Pressure
-Simulate high CPU usage:
+### 3. กดดัน CPU
+จำลองการใช้ CPU สูง:
 ```powershell
-# Light load
+# โหลดเบาๆ
 Invoke-RestMethod "http://localhost:5001/pressure/cpu?iterations=100000"
 
-# Heavy load
+# โหลดหนักมาก
 Invoke-RestMethod "http://localhost:5001/pressure/cpu?iterations=10000000"
 ```
 
-### 4. Memory Pressure
-Simulate memory allocation:
+### 4. กดดัน Memory
+จำลองการจอง memory:
 ```powershell
-# Allocate 50MB
+# จอง 50MB
 Invoke-RestMethod "http://localhost:5001/pressure/memory?mbToAllocate=50"
 
-# Allocate 200MB
+# จอง 200MB
 Invoke-RestMethod "http://localhost:5001/pressure/memory?mbToAllocate=200"
 ```
 
-## Observability Features
+![Postman เรียก API ทดสอบ CPU และ Memory](./documents/postman_call_api_consume_ram_cpu.png)
+*ตัวอย่างการใช้ Postman เรียก API เพื่อทดสอบการใช้งาน CPU และ Memory*
+
+## ฟีเจอร์ Observability 📊
 
 ### Structured Logging
-All endpoints use structured logging with key-value pairs:
+ทุก endpoint ใช้ structured logging พร้อม key-value pairs:
 - Product operations log: `ProductId`, `DelayMs`
 - Order operations log: `FailureMode`, `OrderId`
 - CPU pressure logs: `Iterations`, `Duration`
 - Memory pressure logs: `MbToAllocate`
 
 ### Distributed Tracing
-The system supports distributed tracing through:
-- Automatic correlation ID propagation between Upstream and Downstream APIs
-- Request tracing across service boundaries
-- Error correlation from gateway to backend services
+ระบบรองรับ distributed tracing ผ่าน:
+- การส่งต่อ correlation ID อัตโนมัติระหว่าง Upstream และ Downstream APIs
+- ติดตาม request ข้ามขอบเขต service
+- เชื่อมโยง error จาก gateway ไปยัง backend services
 
-### Application Insights Integration
-When configured with Azure Application Insights, you can:
-- View end-to-end transaction details
-- Analyze performance metrics and bottlenecks
-- Set up alerts for failures and performance degradation
-- Create custom dashboards for monitoring
+### การรวมกับ Application Insights
+เมื่อตั้งค่า Azure Application Insights แล้ว คุณสามารถ:
+- ดูรายละเอียด transaction แบบ end-to-end
+- วิเคราะห์ performance metrics และหา bottlenecks
+- ตั้ง alerts สำหรับความล้มเหลวและ performance ที่แย่ลง
+- สร้าง custom dashboards สำหรับ monitoring
 
-## Learning Exercises
+## แบบฝึกหัดการเรียนรู้ 📚
 
-### Basic Exercises
+### แบบฝึกหัดพื้นฐาน
 
-#### Exercise 1: Identify Latency Source
-1. Call `/gateway/products/100?delayMs=3000`
-2. Use Application Insights to identify where the delay occurs
-3. Verify the delay is in the downstream service
+#### แบบฝึกหัด 1: หาต้นตอความช้า
+1. เรียก `/gateway/products/100?delayMs=3000`
+2. ใช้ Application Insights หาว่าความช้าเกิดที่ไหน
+3. ยืนยันว่าความช้าอยู่ใน downstream service
 
-#### Exercise 2: Trace Transient Failures
-1. Call `/gateway/orders?failureMode=transient` multiple times
-2. Observe the 50% failure rate
-3. Trace failed requests through both services
-4. Identify the exact failure point and error details
+#### แบบฝึกหัด 2: ตามรอยความล้มเหลวชั่วคราว
+1. เรียก `/gateway/orders?failureMode=transient` หลายๆ ครั้ง
+2. สังเกตอัตราความล้มเหลว 50%
+3. ตามรอย request ที่ล้มเหลวผ่านทั้งสอง service
+4. ระบุจุดที่ล้มเหลวและรายละเอียด error
 
-#### Exercise 3: Monitor Resource Usage
-1. Generate CPU pressure: `/pressure/cpu?iterations=50000000`
-2. Generate memory pressure: `/pressure/memory?mbToAllocate=500`
-3. Monitor the impact on service performance
-4. Set up alerts for high resource usage
+#### แบบฝึกหัด 3: Monitor การใช้ทรัพยากร
+1. สร้างแรงดัน CPU: `/pressure/cpu?iterations=50000000`
+2. สร้างแรงดัน memory: `/pressure/memory?mbToAllocate=500`
+3. ดูผลกระทบต่อ performance ของ service
+4. ตั้ง alerts สำหรับการใช้ทรัพยากรสูง
 
-#### Exercise 4: Correlate Distributed Errors
-1. Stop the Downstream API
-2. Call gateway endpoints
-3. Observe 502 Bad Gateway errors
-4. Trace the correlation between gateway errors and downstream unavailability
+#### แบบฝึกหัด 4: เชื่อมโยง Distributed Errors
+1. หยุด Downstream API
+2. เรียก gateway endpoints
+3. สังเกต 502 Bad Gateway errors
+4. ตามรอยความสัมพันธ์ระหว่าง gateway errors และ downstream ที่ไม่พร้อมใช้งาน
 
-### Advanced Exercises 🔍
+### แบบฝึกหัดขั้นสูง 🔍
 
-**[View Advanced Observability Exercises](./ADVANCED-EXERCISES.md)**
+**[ดูแบบฝึกหัด Observability ขั้นสูง](./ADVANCED-EXERCISES.md)**
 
-The advanced exercises include hidden production-like bugs that require detective work to identify:
-- **The Mysterious Slow Products** - Some products consistently take 3+ seconds to load
-- **The Order Processing Anomaly** - Specific order ranges have 90% failure rates
-- **The Memory Leak Mystery** - Certain requests cause memory that never gets released
-- **The Periodic Performance Problem** - Every few requests freeze for 5 seconds
-- **The Cache Corruption Catastrophe** - Invalid inputs corrupt all subsequent responses
-- **The CPU Spike Syndrome** - Palindrome IDs cause extreme CPU spikes
+แบบฝึกหัดขั้นสูงมี bug แบบ production จริงๆ ที่ซ่อนอยู่ ต้องใช้ทักษะนักสืบหาให้เจอ:
+- **ปริศนาสินค้าช้าลึกลับ** - บางสินค้าโหลดช้ามาก 3+ วินาทีเลย!
+- **ความผิดปกติการประมวลผลคำสั่งซื้อ** - คำสั่งซื้อบางช่วงล้มเหลว 90%
+- **ปริศนา Memory Leak** - บาง request ทำให้ memory ไม่ถูกคืน
+- **ปัญหา Performance เป็นรอบ** - ทุกๆ สอง-สาม request จะค้างไป 5 วินาที
+- **หายนะ Cache เสียหาย** - input ผิดๆ ทำให้ response หลังจากนั้นพังหมด
+- **อาการ CPU พุ่งสูง** - ID แบบ palindrome ทำให้ CPU พุ่งสุดๆ
 
-Use the cross-platform test data generator to trigger bugs:
+ใช้ test data generator แบบ cross-platform เพื่อกระตุ้น bug:
 ```powershell
-# Build the test data generator
+# Build test data generator
 cd test-data-generator
 dotnet build
 
-# Run all tests
+# รันทุกการทดสอบ
 dotnet run -- http://localhost:5000 all
 
-# Run specific test type (random, range, prime, load, palindrome, edge)
+# รันเฉพาะประเภท (random, range, prime, load, palindrome, edge)
 dotnet run -- http://localhost:5000 palindrome
 ```
 
-## Configuration
+![Console App Test Data Generator](./documents/console_app_generate_advance_exercise_test_data.png)
+*Console application สำหรับสร้าง test data เพื่อทดสอบ advanced exercises*
+
+## การตั้งค่า ⚙️
 
 ### Application Settings
-Both APIs can be configured through `appsettings.json`:
+ทั้งสอง API ตั้งค่าผ่าน `appsettings.json`:
 
 **Downstream API:**
 ```json
 {
   "ApplicationInsights": {
-    "ConnectionString": "YOUR_CONNECTION_STRING"
+    "ConnectionString": "CONNECTION_STRING_ของคุณ"
   },
   "Kestrel": {
     "Endpoints": {
@@ -284,7 +290,7 @@ Both APIs can be configured through `appsettings.json`:
 ```json
 {
   "ApplicationInsights": {
-    "ConnectionString": "YOUR_CONNECTION_STRING"
+    "ConnectionString": "CONNECTION_STRING_ของคุณ"
   },
   "DownstreamApi": {
     "BaseUrl": "http://localhost:5001"
@@ -299,28 +305,28 @@ Both APIs can be configured through `appsettings.json`:
 }
 ```
 
-## Troubleshooting
+## แก้ปัญหาเบื้องต้น 🔧
 
-### APIs won't start
-- Ensure ports 5000 and 5001 are not in use
-- Check that .NET 8 SDK is installed: `dotnet --version`
+### APIs ไม่ยอม start
+- ตรวจสอบว่า port 5000 และ 5001 ไม่มีใครใช้อยู่
+- เช็คว่าติดตั้ง .NET 8 SDK แล้ว: `dotnet --version`
 
-### Connection refused between services
-- Ensure Downstream API is running before testing Upstream API
-- Verify the `DownstreamApi:BaseUrl` in Upstream API configuration
+### Connection refused ระหว่าง services
+- ต้องรัน Downstream API ก่อนทดสอบ Upstream API
+- ตรวจสอบ `DownstreamApi:BaseUrl` ใน Upstream API configuration
 
-### No telemetry in Application Insights
-- Verify the connection string is correct
-- Check that the Application Insights resource is active
-- Allow a few minutes for telemetry to appear
+### ไม่เห็น telemetry ใน Application Insights
+- ตรวจสอบว่า connection string ถูกต้อง
+- เช็คว่า Application Insights resource ยังใช้งานอยู่
+- รอสักสองสามนาทีให้ telemetry ขึ้นมา
 
-## Project Structure
+## โครงสร้าง Project 📁
 
 ```
 observability-simple/
 ├── downstream-api/
 │   └── DownstreamApi/
-│       ├── Program.cs          # All endpoints and configuration
+│       ├── Program.cs          # Endpoints และ configuration ทั้งหมด
 │       ├── appsettings.json    # Configuration
 │       └── DownstreamApi.csproj
 ├── upstream-api/
@@ -329,76 +335,78 @@ observability-simple/
 │       ├── appsettings.json    # Configuration
 │       └── UpstreamApi.csproj
 ├── test-data-generator/
-│   ├── Program.cs              # Cross-platform test data generator
+│   ├── Program.cs              # Test data generator แบบ cross-platform
 │   └── TestDataGenerator.csproj
 ├── tests/
 │   ├── ObservabilityTests/    # Shared test utilities
 │   └── DownstreamApiTests/    # Downstream API unit tests
-├── create-azure-resources.ps1  # Create Azure resources script
-├── deploy-apps-only.ps1        # Deploy applications script
+├── create-azure-resources.ps1  # Script สร้าง Azure resources
+├── deploy-apps-only.ps1        # Script deploy applications
 ├── ObservabilitySimple.sln     # Solution file
-├── CLAUDE.md                   # Implementation plan
-├── README.md                   # This file
-└── ADVANCED-EXERCISES.md       # Advanced bug hunting exercises
+├── CLAUDE.md                   # แผนการ implementation
+├── README.md                   # ไฟล์ต้นฉบับภาษาอังกฤษ
+├── README_TH.md                # ไฟล์นี้ (ภาษาไทย)
+├── ADVANCED-EXERCISES.md       # แบบฝึกหัดล่า bug ขั้นสูง
+└── ADVANCED-EXERCISES_TH.md    # แบบฝึกหัดขั้นสูงภาษาไทย
 ```
 
-## Azure Deployment
+## การ Deploy ขึ้น Azure ☁️
 
 ### PowerShell Deployment Scripts
 
-**Step 1: Create Azure Resources (One Time)**
-First, create all required Azure resources:
+**ขั้นตอนที่ 1: สร้าง Azure Resources (ทำครั้งเดียว)**
+สร้าง Azure resources ที่จำเป็นทั้งหมด:
 
 ```powershell
-# Create all Azure resources (Resource Group, App Service Plan, Web Apps, Application Insights)
+# สร้าง Azure resources ทั้งหมด (Resource Group, App Service Plan, Web Apps, Application Insights)
 .\create-azure-resources.ps1
 
-# Or with custom parameters
+# หรือใช้ parameters ที่กำหนดเอง
 .\create-azure-resources.ps1 -ResourceGroup "my-rg" -Location "eastus" -DownstreamAppName "my-downstream" -UpstreamAppName "my-upstream"
 ```
 
-**Step 2: Deploy Applications (For Updates)**
-Deploy the latest code to existing Azure resources:
+**ขั้นตอนที่ 2: Deploy Applications (สำหรับอัพเดท)**
+Deploy code ล่าสุดไปยัง Azure resources ที่มีอยู่:
 
 ```powershell
-# Deploy apps to existing resources
+# Deploy apps ไปยัง resources ที่มีอยู่
 .\deploy-apps-only.ps1
 
-# Or with custom parameters
+# หรือใช้ parameters ที่กำหนดเอง
 .\deploy-apps-only.ps1 -ResourceGroup "observability-rg-west" -DownstreamApp "observability-downstream" -UpstreamApp "observability-upstream"
 ```
 
-**Complete Workflow:**
+**Workflow ทั้งหมด:**
 ```powershell
-# 1. Create resources (one time)
+# 1. สร้าง resources (ครั้งเดียว)
 .\create-azure-resources.ps1
 
 # 2. Deploy applications
 .\deploy-apps-only.ps1
 
-# 3. Test with advanced bugs
+# 3. ทดสอบกับ bug ขั้นสูง
 cd test-data-generator
 dotnet run -- https://observability-upstream.azurewebsites.net all
 ```
 
-### Manual Azure App Service Deployment
+### การ Deploy Azure App Service แบบ Manual
 
-If you prefer to deploy manually, follow these PowerShell steps:
+ถ้าอยาก deploy เองแบบ manual ทำตาม PowerShell steps นี้:
 
-#### Prerequisites
-- Azure CLI installed and logged in (`az login`)
-- PowerShell 5.1 or PowerShell Core 7+
-- Proper Azure subscription permissions
+#### สิ่งที่ต้องมี
+- Azure CLI ติดตั้งและ login แล้ว (`az login`)
+- PowerShell 5.1 หรือ PowerShell Core 7+
+- สิทธิ์ Azure subscription ที่เหมาะสม
 
-#### Step-by-Step Deployment
+#### ขั้นตอนการ Deploy ทีละขั้น
 
-1. **Create Resource Group and Application Insights**
+1. **สร้าง Resource Group และ Application Insights**
    ```powershell
-   # Choose a region that supports your subscription quotas
-   # Common alternatives: westus2, eastus2, centralus, westeurope
+   # เลือก region ที่ subscription คุณรองรับ
+   # ตัวเลือกทั่วไป: westus2, eastus2, centralus, westeurope
    az group create --name observability-rg-west --location westus2
    
-   # Create Application Insights
+   # สร้าง Application Insights
    az monitor app-insights component create `
      --app observability-insights `
      --location westus2 `
@@ -406,16 +414,16 @@ If you prefer to deploy manually, follow these PowerShell steps:
      --application-type web
    ```
 
-2. **Create App Service Plan**
+2. **สร้าง App Service Plan**
    ```powershell
-   # Try F1 (Free) tier first, fallback to B1 if needed
+   # ลอง F1 (Free) tier ก่อน ถ้าไม่ได้ค่อยใช้ B1
    az appservice plan create `
      --name observability-plan `
      --resource-group observability-rg-west `
      --location westus2 `
      --sku F1
    
-   # If F1 fails due to quota, try B1 (requires subscription with compute quota)
+   # ถ้า F1 ไม่พอ (quota เต็ม) ลองใช้ B1 (ต้องมี compute quota)
    # az appservice plan create `
    #   --name observability-plan `
    #   --resource-group observability-rg-west `
@@ -423,16 +431,16 @@ If you prefer to deploy manually, follow these PowerShell steps:
    #   --sku B1
    ```
 
-3. **Create Web Apps**
+3. **สร้าง Web Apps**
    ```powershell
-   # Create downstream API app
+   # สร้าง downstream API app
    az webapp create `
      --name observability-downstream `
      --resource-group observability-rg-west `
      --plan observability-plan `
      --runtime "dotnet:8"
    
-   # Create upstream API app
+   # สร้าง upstream API app
    az webapp create `
      --name observability-upstream `
      --resource-group observability-rg-west `
@@ -440,21 +448,21 @@ If you prefer to deploy manually, follow these PowerShell steps:
      --runtime "dotnet:8"
    ```
 
-4. **Configure Application Settings**
+4. **ตั้งค่า Application Settings**
    ```powershell
-   # Get Application Insights connection string
+   # ดึง Application Insights connection string
    $connectionString = az monitor app-insights component show `
      --app observability-insights `
      --resource-group observability-rg-west `
      --query connectionString -o tsv
    
-   # Configure Downstream API
+   # ตั้งค่า Downstream API
    az webapp config appsettings set `
      --name observability-downstream `
      --resource-group observability-rg-west `
      --settings "APPLICATIONINSIGHTS_CONNECTION_STRING=$connectionString"
    
-   # Configure Upstream API with downstream URL
+   # ตั้งค่า Upstream API พร้อม downstream URL
    az webapp config appsettings set `
      --name observability-upstream `
      --resource-group observability-rg-west `
@@ -462,7 +470,7 @@ If you prefer to deploy manually, follow these PowerShell steps:
                 "DownstreamApi__BaseUrl=https://observability-downstream.azurewebsites.net"
    ```
 
-5. **Build and Deploy Applications**
+5. **Build และ Deploy Applications**
    ```powershell
    # Build downstream API
    dotnet publish downstream-api/DownstreamApi/DownstreamApi.csproj `
@@ -474,11 +482,11 @@ If you prefer to deploy manually, follow these PowerShell steps:
      --configuration Release `
      --output ./publish/upstream
    
-   # Create deployment packages
+   # สร้าง deployment packages
    Compress-Archive -Path 'publish/downstream/*' -DestinationPath 'publish/downstream-api.zip' -Force
    Compress-Archive -Path 'publish/upstream/*' -DestinationPath 'publish/upstream-api.zip' -Force
    
-   # Deploy to Azure
+   # Deploy ขึ้น Azure
    az webapp deploy `
      --name observability-downstream `
      --resource-group observability-rg-west `
@@ -492,52 +500,72 @@ If you prefer to deploy manually, follow these PowerShell steps:
      --type zip
    ```
 
-6. **Verify Deployment**
+6. **ตรวจสอบการ Deploy**
    ```powershell
-   # Test health endpoints
+   # ทดสอบ health endpoints
    Invoke-RestMethod https://observability-downstream.azurewebsites.net/health
    Invoke-RestMethod https://observability-upstream.azurewebsites.net/health
    
-   # Test application endpoints
+   # ทดสอบ application endpoints
    Invoke-RestMethod "https://observability-upstream.azurewebsites.net/gateway/products/123?delayMs=100"
    
-   # Access Swagger UI
-   # Navigate to: https://observability-upstream.azurewebsites.net/swagger
+   # เข้าดู Swagger UI
+   # ไปที่: https://observability-upstream.azurewebsites.net/swagger
    ```
 
-### Testing Azure Deployment
+### ทดสอบ Azure Deployment
 
-After deploying to Azure, test your endpoints:
+หลังจาก deploy ขึ้น Azure แล้ว ลองทดสอบ endpoints:
 
 ```powershell
 # Health checks
 Invoke-RestMethod https://your-downstream-app.azurewebsites.net/health
 Invoke-RestMethod https://your-upstream-app.azurewebsites.net/health
 
-# Product endpoint with latency simulation
+# Product endpoint พร้อมจำลองความช้า
 Invoke-RestMethod "https://your-upstream-app.azurewebsites.net/gateway/products/123?delayMs=500"
 
-# Order endpoint with failure simulation
+# Order endpoint พร้อมจำลองความล้มเหลว
 Invoke-RestMethod -Uri "https://your-upstream-app.azurewebsites.net/gateway/orders?failureMode=transient" -Method Post
 
-# CPU pressure test
+# ทดสอบแรงดัน CPU
 Invoke-RestMethod "https://your-downstream-app.azurewebsites.net/pressure/cpu?iterations=100000"
 
-# Memory pressure test
+# ทดสอบแรงดัน memory
 Invoke-RestMethod "https://your-downstream-app.azurewebsites.net/pressure/memory?mbToAllocate=50"
 
-# Test advanced bugs (if enabled)
+# ทดสอบ bug ขั้นสูง (ถ้าเปิดใช้งาน)
 cd test-data-generator
 dotnet run -- https://your-upstream-app.azurewebsites.net all
 ```
 
-## Monitoring in Azure
+## Monitoring ใน Azure 📈
+
+### ตัวอย่างผลลัพธ์ใน Azure Application Insights
+
+#### Transaction ที่ช้า
+![Slow Transactions](./documents/result_slow_transection_in_azure.png)
+*ตัวอย่างการแสดง transaction ที่มีความช้าใน Azure Application Insights*
+
+![Multiple Slow Transactions](./documents/result_many_slow_transection_in_azure.png)
+*การแสดง transaction ที่ช้าหลายรายการพร้อมกัน*
+
+#### การตรวจจับความล้มเหลว
+![Failed Transactions](./documents/result_fail_transection_in_azure_by_calling_api.png)
+*ตัวอย่างการแสดง failed transactions จากการเรียก API*
+
+#### การ Monitor CPU และ Memory
+![CPU Peak](./documents/result_cpu_peak_in_azure.png)
+*กราฟแสดง CPU spike ใน Azure Monitor*
+
+![Live Monitoring](./documents/result_cpu_ram_peak_in_azure_live_monitor.png)
+*Live monitoring แสดง CPU และ Memory usage แบบ real-time*
 
 ### Application Insights Queries
 
-Access Application Insights in Azure Portal and try these KQL queries:
+เข้า Application Insights ใน Azure Portal แล้วลอง KQL queries เหล่านี้:
 
-1. **View All Requests**
+1. **ดู Request ทั้งหมด**
    ```kusto
    requests
    | where timestamp > ago(1h)
@@ -545,7 +573,7 @@ Access Application Insights in Azure Portal and try these KQL queries:
    | order by count_ desc
    ```
 
-2. **Trace Request Flow**
+2. **ตามรอย Request Flow**
    ```kusto
    requests
    | where name contains "gateway"
@@ -553,7 +581,7 @@ Access Application Insights in Azure Portal and try these KQL queries:
    | project timestamp, request_name = name, dependency_name = name1, duration, resultCode
    ```
 
-3. **Performance Analysis**
+3. **วิเคราะห์ Performance**
    ```kusto
    requests
    | where timestamp > ago(1h)
@@ -561,7 +589,7 @@ Access Application Insights in Azure Portal and try these KQL queries:
    | order by avg_duration desc
    ```
 
-4. **Error Analysis**
+4. **วิเคราะห์ Error**
    ```kusto
    requests
    | where success == false
@@ -569,9 +597,9 @@ Access Application Insights in Azure Portal and try these KQL queries:
    | order by count_ desc
    ```
 
-### Setting Up Alerts
+### การตั้ง Alerts
 
-1. **Create Alert for High Error Rate**
+1. **สร้าง Alert สำหรับ Error Rate สูง**
    ```powershell
    az monitor metrics alert create `
      --name "High Error Rate" `
@@ -582,7 +610,7 @@ Access Application Insights in Azure Portal and try these KQL queries:
      --evaluation-frequency 1m
    ```
 
-2. **Create Alert for High Response Time**
+2. **สร้าง Alert สำหรับ Response Time สูง**
    ```powershell
    az monitor metrics alert create `
      --name "High Response Time" `
@@ -593,25 +621,25 @@ Access Application Insights in Azure Portal and try these KQL queries:
      --evaluation-frequency 1m
    ```
 
-## Cost Management
+## การจัดการค่าใช้จ่าย 💰
 
-- **App Service**: B1 tier (~$13/month)  
-- **Application Insights**: First 5GB free, then $2.30/GB
+- **App Service**: B1 tier ประมาณ $13/เดือน  
+- **Application Insights**: 5GB แรกฟรี หลังจากนั้น $2.30/GB
 
-To minimize costs:
-1. Use F1 (Free) or B1 App Service tier for learning
-2. Delete resources when not in use: `az group delete --name observability-rg-west`
-3. Monitor Application Insights data ingestion
+วิธีประหยัดค่าใช้จ่าย:
+1. ใช้ F1 (Free) หรือ B1 App Service tier สำหรับการเรียนรู้
+2. ลบ resources เมื่อไม่ใช้: `az group delete --name observability-rg-west`
+3. คอย monitor การใช้ข้อมูลใน Application Insights
 
-## Next Steps
+## ขั้นตอนต่อไป 🎯
 
-1. **Deploy to Azure** using one of the options above
-2. **Run load tests** against Azure endpoints to generate telemetry
-3. **Create custom dashboards** in Application Insights
-4. **Set up alerts** for various failure conditions
-5. **Practice incident response** using Azure monitoring tools
-6. **Explore Log Analytics** for advanced querying
+1. **Deploy ขึ้น Azure** ด้วยวิธีใดวิธีหนึ่งข้างบน
+2. **รัน load tests** กับ Azure endpoints เพื่อสร้าง telemetry
+3. **สร้าง custom dashboards** ใน Application Insights
+4. **ตั้ง alerts** สำหรับเงื่อนไขความล้มเหลวต่างๆ
+5. **ฝึกตอบสนอง incident** ด้วย Azure monitoring tools
+6. **สำรวจ Log Analytics** สำหรับ query ขั้นสูง
 
-## License
+## License 📄
 
-This is a learning platform for educational purposes.
+นี่คือแพลตฟอร์มการเรียนรู้เพื่อการศึกษาครับ!
