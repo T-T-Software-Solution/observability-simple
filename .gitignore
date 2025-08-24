@@ -53,3 +53,5 @@ CodeCoverage/
 TestResult.xml
 nunit-*.xml
 /publish
+/downstream-api/DownstreamApi/publish
+/upstream-api/UpstreamApi/publish

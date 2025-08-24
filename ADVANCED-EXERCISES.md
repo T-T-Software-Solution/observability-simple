@@ -34,14 +34,23 @@ export ADVANCED_BUG_CPU_SPIKE=true
 
 ## Running the Bug Hunter
 
-Use the provided test generation scripts to trigger the bugs:
+Use the cross-platform C# test data generator to trigger the bugs:
 
-```bash
-# PowerShell
-./advanced-bug-hunter.ps1 -BaseUrl http://localhost:5000 -TestType all
+```powershell
+# Build the test data generator
+cd test-data-generator
+dotnet build
 
-# Bash
-./advanced-bug-hunter.sh http://localhost:5000 all
+# Run all tests
+dotnet run -- http://localhost:5000 all
+
+# Run specific test type
+dotnet run -- http://localhost:5000 random   # Test random product IDs
+dotnet run -- http://localhost:5000 range    # Test order ranges
+dotnet run -- http://localhost:5000 prime    # Test prime numbers
+dotnet run -- http://localhost:5000 load     # Test load patterns
+dotnet run -- http://localhost:5000 palindrome # Test palindrome IDs
+dotnet run -- http://localhost:5000 edge     # Test edge cases
 ```
 
 ---
@@ -54,10 +63,18 @@ Use the provided test generation scripts to trigger the bugs:
 ### Your Mission
 Find which product IDs are experiencing performance issues and identify the pattern.
 
+### What You'll See in Logs
+- "Applying enhanced validation for product {ProductId}"
+- "Legacy system validation initiated"
+- "Legacy validation completed"
+
+These logs appear normal - legacy systems are often slow. But why only certain products?
+
 ### Test Generation
-```bash
+```powershell
 # Run the random product ID test
-./advanced-bug-hunter.ps1 -TestType random
+cd test-data-generator
+dotnet run -- http://localhost:5000 random
 ```
 
 ### Investigation Steps
@@ -98,10 +115,18 @@ The bug: Products with "unlucky" IDs (13, 42, 99, 666, 1337, 2024, 9999) have a 
 ### Your Mission
 Identify which order ID ranges are failing and determine the failure pattern.
 
+### What You'll See in Logs
+- "Order validation failed for {OrderId}: Database constraint violation"
+- "Order {OrderId} failed validation check against table ORDER_CONSTRAINTS"
+- Exception: "Foreign key constraint FK_ORDER_VALIDATION failed"
+
+Looks like a database issue, but why only specific order ranges?
+
 ### Test Generation
-```bash
+```powershell
 # Run the order range test
-./advanced-bug-hunter.ps1 -TestType range
+cd test-data-generator
+dotnet run -- http://localhost:5000 range
 ```
 
 ### Investigation Steps
@@ -142,10 +167,17 @@ The bug: Orders with IDs 1000-1099 fail 90% of the time due to a "business rule 
 ### Your Mission
 Find which product IDs are causing memory leaks.
 
+### What You'll See in Logs
+- "Initializing product cache for {ProductId}"
+- "Product {ProductId} cached for performance optimization"
+
+Normal caching behavior, right? But why isn't memory being released?
+
 ### Test Generation
-```bash
+```powershell
 # Run the prime number test
-./advanced-bug-hunter.ps1 -TestType prime
+cd test-data-generator
+dotnet run -- http://localhost:5000 prime
 ```
 
 ### Investigation Steps
@@ -185,10 +217,18 @@ The bug: Products with prime number IDs leak 5MB of memory per unique prime ID a
 ### Your Mission
 Identify the pattern causing periodic slowdowns.
 
+### What You'll See in Logs
+- "Starting scheduled maintenance task"
+- "Synchronous database cleanup initiated for request {RequestNumber}"
+- "Maintenance task completed"
+
+Maintenance is normal, but why is it running during peak hours and blocking requests?
+
 ### Test Generation
-```bash
+```powershell
 # Run the load pattern test
-./advanced-bug-hunter.ps1 -TestType load
+cd test-data-generator
+dotnet run -- http://localhost:5000 load
 ```
 
 ### Investigation Steps
@@ -229,10 +269,17 @@ The bug: Every 10th request blocks a thread for 5 seconds, simulating thread poo
 ### Your Mission
 Find what triggers cache corruption.
 
+### What You'll See in Logs
+- "Cache miss for product {ProductId}, loading from database"
+- "Unexpected data format for product {ProductId}, using fallback values"
+
+Seems like a data format issue, but why does it affect ALL subsequent requests?
+
 ### Test Generation
-```bash
+```powershell
 # Run the edge case test
-./advanced-bug-hunter.ps1 -TestType edge
+cd test-data-generator
+dotnet run -- http://localhost:5000 edge
 ```
 
 ### Investigation Steps
@@ -273,15 +320,23 @@ The bug: Product IDs ≤ 0 poison the cache for 30 seconds, causing all subseque
 ### Your Mission
 Identify which product IDs trigger extreme CPU usage and find the pattern.
 
+### What You'll See in Logs
+- "Calculating recommendations for product {ProductId}"
+- "Running similarity analysis for product {ProductId}"
+- "Recommendation calculation completed in {ElapsedMs}ms"
+
+Recommendation engines can be CPU-intensive, but why are some products taking 10-100x longer?
+
 ### Test Generation
-```bash
+```powershell
 # Run the palindrome test
-./advanced-bug-hunter.ps1 -TestType palindrome
+cd test-data-generator
+dotnet run -- http://localhost:5000 palindrome
 
 # Or test specific palindrome IDs
-curl http://localhost:5001/products/121
-curl http://localhost:5001/products/1221
-curl http://localhost:5001/products/12321
+Invoke-RestMethod http://localhost:5001/products/121
+Invoke-RestMethod http://localhost:5001/products/1221
+Invoke-RestMethod http://localhost:5001/products/12321
 ```
 
 ### Investigation Steps
@@ -329,95 +384,103 @@ Common palindrome IDs to test:
 
 ---
 
-## 🔍 Code-Level Bug Hunting
+## 🔍 Production-Like Bug Hunting
 
-The system now includes **precise code location tracking** that tells you exactly which line of code causes each bug - just like real production systems using only observability data!
+### The Realistic Challenge
 
-### Production-Ready Approach
+**No obvious bug indicators** - just like real production! You won't find:
+- No "BUG DETECTED" messages
+- No "BugTriggered" events  
+- No explicit code locations
+- No bug type labels
 
-**No debug endpoints** - just like real production systems! All code location data flows through Application Insights telemetry.
+### What You WILL Find
 
-### Enhanced Logging Format
+Just like in production, you'll see:
+- Normal business logic logs ("Applying enhanced validation", "Starting maintenance task")
+- Performance metrics (latency, CPU, memory)
+- Error patterns and exceptions
+- Request correlations
 
-All bug events now log with structured data in Application Insights:
-```
-🐛 BUG DETECTED: CPU_SPIKE at Program.cs:94 in method <Main>$ - Palindrome ProductId=121
-```
+### How to Hunt Bugs Like a Pro
 
-### Bug Code Locations
+1. **Generate Traffic**: Use the test data generator to create load
+2. **Observe Patterns**: Look for anomalies in Application Insights
+3. **Correlate Symptoms**: Match performance issues with request patterns
+4. **Form Hypotheses**: Use the data to guess what's happening
+5. **Validate Theory**: Test specific scenarios to confirm
 
-Find these exact locations in telemetry data:
+### Detective Work Required
 
-| Bug Type | Code Location | Description |
-|----------|---------------|-------------|
-| `HARDCODED_DELAY` | Program.cs:78-81 | Unlucky ID delay logic |
-| `ORDER_RANGE_FAILURE` | Program.cs:144-147 | Range validation failure |
-| `MEMORY_LEAK` | Program.cs:86-89 | Prime number memory leak |
-| `THREAD_POOL_EXHAUSTION` | Program.cs:156-159 | Thread blocking logic |
-| `CACHE_POISON` | Program.cs:109-112 | Cache corruption trigger |
-| `CPU_SPIKE` | Program.cs:94-98 | Palindrome CPU intensive code |
-
-### How to Hunt Bugs
-
-1. **Generate Issues**: Use the bug hunter scripts to trigger problems
-2. **Check Application Insights**: Look for `BugTriggered` custom events
-3. **Analyze Telemetry**: Use KQL queries to find code locations
-4. **Correlate Data**: Match symptoms to exact line numbers
+| Symptom | What to Look For | Investigation Approach |
+|---------|------------------|------------------------|
+| Slow requests | Duration > 2000ms | Group by ProductId, look for patterns |
+| High failure rate | Status 500/503 | Analyze by OrderId ranges |
+| Memory growth | Increasing memory metrics | Correlate with specific ProductIds |
+| CPU spikes | CPU > 80% | Match with request timings |
+| Data corruption | Unexpected response values | Track when corruption starts |
 
 ---
 
-## KQL Queries for Code-Level Investigation
+## KQL Queries for Realistic Investigation
 
-### Find Bugs by Code Location
+### Find Slow Products (No Bug Labels!)
 ```kql
-customEvents
-| where name == "BugTriggered"
-| extend BugType = tostring(customDimensions.BugType)
-| extend CodeLocation = tostring(customDimensions.CodeLocation)
-| extend Context = tostring(customDimensions.Context)
-| extend LineNumber = toint(customDimensions.LineNumber)
-| project timestamp, BugType, CodeLocation, Context, LineNumber
-| order by timestamp desc
-```
-
-### Identify Code Hotspots
-```kql
-customEvents
-| where name == "BugTriggered"
-| extend CodeLocation = tostring(customDimensions.CodeLocation)
-| extend MethodName = tostring(customDimensions.MethodName)
+requests
+| where name contains "products"
+| where duration > 2000
+| extend ProductId = tostring(customDimensions.ProductId)
 | summarize 
-    BugCount = count(),
-    AvgDuration = avg(toreal(customMeasurements.DurationMs)),
-    UniqueBugTypes = dcount(tostring(customDimensions.BugType))
-    by CodeLocation, MethodName
-| order by BugCount desc
+    AvgDuration = avg(duration),
+    Count = count(),
+    P95Duration = percentile(duration, 95)
+    by ProductId
+| where Count > 2
+| order by AvgDuration desc
+// Look for patterns in the slow ProductIds - what do they have in common?
 ```
 
-### Performance Impact by Line Number
+### Analyze Order Failures by Range
 ```kql
-customEvents
-| where name == "BugTriggered"
-| extend BugType = tostring(customDimensions.BugType)
-| extend CodeLocation = tostring(customDimensions.CodeLocation)
-| extend DurationMs = toreal(customMeasurements.DurationMs)
+exceptions
+| where message contains "constraint" or message contains "validation"
+| extend OrderId = toint(customDimensions.OrderId)
 | summarize 
-    TotalImpact = sum(DurationMs),
-    AvgImpact = avg(DurationMs),
-    Count = count()
-    by BugType, CodeLocation
-| order by TotalImpact desc
+    FailureCount = count(),
+    FailureRate = count() * 100.0 / 301.0
+    by OrderRange = bin(OrderId, 100)
+| order by OrderRange
+// Which order ranges have unusually high failure rates?
 ```
 
-### Stack Trace Analysis
+### Memory Growth Pattern Detection
 ```kql
-customEvents
-| where name == "BugTriggered"
-| extend StackTrace = tostring(customDimensions.StackTrace)
-| extend BugType = tostring(customDimensions.BugType)
-| project timestamp, BugType, StackTrace
-| where isnotempty(StackTrace)
-| take 10
+performanceCounters
+| where name == "Private Bytes"
+| summarize MemoryMB = avg(value/1048576) by bin(timestamp, 1m)
+| join kind=inner (
+    requests
+    | where name contains "products"
+    | extend ProductId = toint(customDimensions.ProductId)
+    | summarize RequestCount = count() by bin(timestamp, 1m), ProductId
+) on timestamp
+| order by timestamp
+// Does memory growth correlate with specific ProductIds?
+```
+
+### Find Request Patterns in Slowdowns
+```kql
+requests
+| where duration > 3000
+| serialize
+| extend RequestNumber = row_number()
+| extend PatternCheck = RequestNumber % 10
+| summarize 
+    SlowCount = count(),
+    AvgDuration = avg(duration)
+    by PatternCheck
+| order by PatternCheck
+// Is there a pattern in which requests are slow?
 ```
 
 ---

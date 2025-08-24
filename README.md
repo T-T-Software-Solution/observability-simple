@@ -41,31 +41,31 @@ The platform simulates a distributed system with intentional performance issues 
 ## Quick Start
 
 1. **Clone the repository**
-   ```bash
+   ```powershell
    git clone <repository-url>
    cd observability-simple
    ```
 
 2. **Build the solution**
-   ```bash
+   ```powershell
    dotnet build
    ```
 
-3. **Login to Azure CLI** (Required for Azure resources)
+3. **Azure Setup** (For Azure deployment)
    
-   First, ensure you have Azure CLI installed and login:
-   ```bash
+   Ensure you have Azure CLI installed and login:
+   ```powershell
    # Check if Azure CLI is installed
    az --version
    
-   # If not installed, install it from: https://docs.microsoft.com/en-us/cli/azure/install-azure-cli
+   # If not installed, install from: https://aka.ms/installazurecliwindows
    
    # Login to Azure
    az login
    ```
    
    This will open a browser window for authentication. After successful login:
-   ```bash
+   ```powershell
    # Verify you're logged in and check your subscription
    az account show
    
@@ -76,24 +76,18 @@ The platform simulates a distributed system with intentional performance issues 
    az account set --subscription "your-subscription-name-or-id"
    ```
 
-4. **Configure Application Insights**
+4. **Deploy to Azure** (Recommended)
    
-   Create an Application Insights resource in Azure:
-   ```bash
-   az monitor app-insights component create \
-     --app observability-learning \
-     --location eastus \
-     --resource-group your-resource-group \
-     --application-type web
+   Use the PowerShell scripts to deploy to Azure:
+   ```powershell
+   # Create all Azure resources (one time)
+   .\create-azure-resources.ps1
+   
+   # Deploy applications
+   .\deploy-apps-only.ps1
    ```
    
-   Get the connection string:
-   ```bash
-   az monitor app-insights component show \
-     --app observability-learning \
-     --resource-group your-resource-group \
-     --query connectionString -o tsv
-   ```
+   The scripts will automatically configure Application Insights and all settings.
    
    Update both APIs' `appsettings.json`:
    ```json
@@ -102,23 +96,25 @@ The platform simulates a distributed system with intentional performance issues 
    }
    ```
 
-5. **Run the Downstream API**
-   ```bash
+5. **Run Locally** (Alternative to Azure deployment)
+   
+   For local development, run both APIs:
+   ```powershell
+   # In first PowerShell window - start downstream API
    cd downstream-api/DownstreamApi
    dotnet run
-   ```
-   The API will start on http://localhost:5001
-
-6. **Run the Upstream API** (in a new terminal)
-   ```bash
-   cd upstream-api/UpstreamApi
+   # API starts on http://localhost:5001
+   
+   # In second PowerShell window - start upstream API
+   cd upstream-api/UpstreamApi  
    dotnet run
+   # API starts on http://localhost:5000
    ```
-   The API will start on http://localhost:5000
 
-7. **Access Swagger UI**
-   - Downstream API: http://localhost:5001/swagger
-   - Upstream API: http://localhost:5000/swagger
+6. **Access Swagger UI**
+   - Local Downstream API: http://localhost:5001/swagger
+   - Local Upstream API: http://localhost:5000/swagger
+   - Azure Upstream API: https://your-upstream-app.azurewebsites.net/swagger
 
 ## API Endpoints
 
@@ -142,51 +138,51 @@ The platform simulates a distributed system with intentional performance issues 
 
 ### 1. Latency Simulation
 Test slow response times:
-```bash
+```powershell
 # Normal response
-curl http://localhost:5001/products/123
+Invoke-RestMethod http://localhost:5001/products/123
 
 # With 2-second delay
-curl "http://localhost:5001/products/123?delayMs=2000"
+Invoke-RestMethod "http://localhost:5001/products/123?delayMs=2000"
 
 # Through gateway with delay
-curl "http://localhost:5000/gateway/products/456?delayMs=1500"
+Invoke-RestMethod "http://localhost:5000/gateway/products/456?delayMs=1500"
 ```
 
 ### 2. Error Simulation
 Test different failure modes:
-```bash
+```powershell
 # Success scenario
-curl -X POST http://localhost:5001/orders
+Invoke-RestMethod -Uri http://localhost:5001/orders -Method Post
 
 # Transient failure (50% chance)
-curl -X POST "http://localhost:5001/orders?failureMode=transient"
+Invoke-RestMethod -Uri "http://localhost:5001/orders?failureMode=transient" -Method Post
 
 # Persistent failure (100% failure)
-curl -X POST "http://localhost:5001/orders?failureMode=persistent"
+Invoke-RestMethod -Uri "http://localhost:5001/orders?failureMode=persistent" -Method Post
 
 # Through gateway
-curl -X POST "http://localhost:5000/gateway/orders?failureMode=transient"
+Invoke-RestMethod -Uri "http://localhost:5000/gateway/orders?failureMode=transient" -Method Post
 ```
 
 ### 3. CPU Pressure
 Simulate high CPU usage:
-```bash
+```powershell
 # Light load
-curl "http://localhost:5001/pressure/cpu?iterations=100000"
+Invoke-RestMethod "http://localhost:5001/pressure/cpu?iterations=100000"
 
 # Heavy load
-curl "http://localhost:5001/pressure/cpu?iterations=10000000"
+Invoke-RestMethod "http://localhost:5001/pressure/cpu?iterations=10000000"
 ```
 
 ### 4. Memory Pressure
 Simulate memory allocation:
-```bash
+```powershell
 # Allocate 50MB
-curl "http://localhost:5001/pressure/memory?mbToAllocate=50"
+Invoke-RestMethod "http://localhost:5001/pressure/memory?mbToAllocate=50"
 
 # Allocate 200MB
-curl "http://localhost:5001/pressure/memory?mbToAllocate=200"
+Invoke-RestMethod "http://localhost:5001/pressure/memory?mbToAllocate=200"
 ```
 
 ## Observability Features
@@ -248,14 +244,19 @@ The advanced exercises include hidden production-like bugs that require detectiv
 - **The Memory Leak Mystery** - Certain requests cause memory that never gets released
 - **The Periodic Performance Problem** - Every few requests freeze for 5 seconds
 - **The Cache Corruption Catastrophe** - Invalid inputs corrupt all subsequent responses
+- **The CPU Spike Syndrome** - Palindrome IDs cause extreme CPU spikes
 
-Use the bug hunter scripts to generate test traffic:
-```bash
-# PowerShell
-./advanced-bug-hunter.ps1 -BaseUrl http://localhost:5000 -TestType all
+Use the cross-platform test data generator to trigger bugs:
+```powershell
+# Build the test data generator
+cd test-data-generator
+dotnet build
 
-# Bash
-./advanced-bug-hunter.sh http://localhost:5000 all
+# Run all tests
+dotnet run -- http://localhost:5000 all
+
+# Run specific test type (random, range, prime, load, palindrome, edge)
+dotnet run -- http://localhost:5000 palindrome
 ```
 
 ## Configuration
@@ -327,176 +328,207 @@ observability-simple/
 │       ├── Program.cs          # Gateway endpoints
 │       ├── appsettings.json    # Configuration
 │       └── UpstreamApi.csproj
+├── test-data-generator/
+│   ├── Program.cs              # Cross-platform test data generator
+│   └── TestDataGenerator.csproj
+├── tests/
+│   ├── ObservabilityTests/    # Shared test utilities
+│   └── DownstreamApiTests/    # Downstream API unit tests
+├── create-azure-resources.ps1  # Create Azure resources script
+├── deploy-apps-only.ps1        # Deploy applications script
 ├── ObservabilitySimple.sln     # Solution file
 ├── CLAUDE.md                   # Implementation plan
-└── README.md                   # This file
+├── README.md                   # This file
+└── ADVANCED-EXERCISES.md       # Advanced bug hunting exercises
 ```
 
 ## Azure Deployment
 
-### Automated Deployment Script
+### PowerShell Deployment Scripts
 
-The project includes an automated deployment script that handles the complete Azure deployment process:
+**Step 1: Create Azure Resources (One Time)**
+First, create all required Azure resources:
 
-```bash
-# Make script executable and run deployment
-chmod +x deploy-to-azure.sh
-./deploy-to-azure.sh
+```powershell
+# Create all Azure resources (Resource Group, App Service Plan, Web Apps, Application Insights)
+.\create-azure-resources.ps1
+
+# Or with custom parameters
+.\create-azure-resources.ps1 -ResourceGroup "my-rg" -Location "eastus" -DownstreamAppName "my-downstream" -UpstreamAppName "my-upstream"
+```
+
+**Step 2: Deploy Applications (For Updates)**
+Deploy the latest code to existing Azure resources:
+
+```powershell
+# Deploy apps to existing resources
+.\deploy-apps-only.ps1
+
+# Or with custom parameters
+.\deploy-apps-only.ps1 -ResourceGroup "observability-rg-west" -DownstreamApp "observability-downstream" -UpstreamApp "observability-upstream"
+```
+
+**Complete Workflow:**
+```powershell
+# 1. Create resources (one time)
+.\create-azure-resources.ps1
+
+# 2. Deploy applications
+.\deploy-apps-only.ps1
+
+# 3. Test with advanced bugs
+cd test-data-generator
+dotnet run -- https://observability-upstream.azurewebsites.net all
 ```
 
 ### Manual Azure App Service Deployment
 
-If you prefer to deploy manually or the automated script fails, follow these steps:
+If you prefer to deploy manually, follow these PowerShell steps:
 
 #### Prerequisites
 - Azure CLI installed and logged in (`az login`)
+- PowerShell 5.1 or PowerShell Core 7+
 - Proper Azure subscription permissions
 
 #### Step-by-Step Deployment
 
 1. **Create Resource Group and Application Insights**
-   ```bash
+   ```powershell
    # Choose a region that supports your subscription quotas
    # Common alternatives: westus2, eastus2, centralus, westeurope
    az group create --name observability-rg-west --location westus2
    
    # Create Application Insights
-   az monitor app-insights component create \
-     --app observability-insights \
-     --location westus2 \
-     --resource-group observability-rg-west \
+   az monitor app-insights component create `
+     --app observability-insights `
+     --location westus2 `
+     --resource-group observability-rg-west `
      --application-type web
    ```
 
 2. **Create App Service Plan**
-   ```bash
+   ```powershell
    # Try F1 (Free) tier first, fallback to B1 if needed
-   az appservice plan create \
-     --name observability-plan \
-     --resource-group observability-rg-west \
-     --location westus2 \
+   az appservice plan create `
+     --name observability-plan `
+     --resource-group observability-rg-west `
+     --location westus2 `
      --sku F1
    
    # If F1 fails due to quota, try B1 (requires subscription with compute quota)
-   # az appservice plan create \
-   #   --name observability-plan \
-   #   --resource-group observability-rg-west \
-   #   --location westus2 \
+   # az appservice plan create `
+   #   --name observability-plan `
+   #   --resource-group observability-rg-west `
+   #   --location westus2 `
    #   --sku B1
    ```
 
 3. **Create Web Apps**
-   ```bash
+   ```powershell
    # Create downstream API app
-   az webapp create \
-     --name observability-downstream \
-     --resource-group observability-rg-west \
-     --plan observability-plan \
+   az webapp create `
+     --name observability-downstream `
+     --resource-group observability-rg-west `
+     --plan observability-plan `
      --runtime "dotnet:8"
    
    # Create upstream API app
-   az webapp create \
-     --name observability-upstream \
-     --resource-group observability-rg-west \
-     --plan observability-plan \
+   az webapp create `
+     --name observability-upstream `
+     --resource-group observability-rg-west `
+     --plan observability-plan `
      --runtime "dotnet:8"
    ```
 
 4. **Configure Application Settings**
-   ```bash
+   ```powershell
    # Get Application Insights connection string
-   CONNECTION_STRING=$(az monitor app-insights component show \
-     --app observability-insights \
-     --resource-group observability-rg-west \
-     --query connectionString -o tsv)
+   $connectionString = az monitor app-insights component show `
+     --app observability-insights `
+     --resource-group observability-rg-west `
+     --query connectionString -o tsv
    
    # Configure Downstream API
-   az webapp config appsettings set \
-     --name observability-downstream \
-     --resource-group observability-rg-west \
-     --settings "APPLICATIONINSIGHTS_CONNECTION_STRING=$CONNECTION_STRING"
+   az webapp config appsettings set `
+     --name observability-downstream `
+     --resource-group observability-rg-west `
+     --settings "APPLICATIONINSIGHTS_CONNECTION_STRING=$connectionString"
    
    # Configure Upstream API with downstream URL
-   az webapp config appsettings set \
-     --name observability-upstream \
-     --resource-group observability-rg-west \
-     --settings "APPLICATIONINSIGHTS_CONNECTION_STRING=$CONNECTION_STRING" \
+   az webapp config appsettings set `
+     --name observability-upstream `
+     --resource-group observability-rg-west `
+     --settings "APPLICATIONINSIGHTS_CONNECTION_STRING=$connectionString" `
                 "DownstreamApi__BaseUrl=https://observability-downstream.azurewebsites.net"
    ```
 
 5. **Build and Deploy Applications**
-   ```bash
+   ```powershell
    # Build downstream API
-   dotnet publish downstream-api/DownstreamApi/DownstreamApi.csproj \
-     --configuration Release \
+   dotnet publish downstream-api/DownstreamApi/DownstreamApi.csproj `
+     --configuration Release `
      --output ./publish/downstream
    
    # Build upstream API  
-   dotnet publish upstream-api/UpstreamApi/UpstreamApi.csproj \
-     --configuration Release \
+   dotnet publish upstream-api/UpstreamApi/UpstreamApi.csproj `
+     --configuration Release `
      --output ./publish/upstream
    
-   # Create deployment packages (Windows PowerShell)
-   powershell "Compress-Archive -Path 'publish/downstream/*' -DestinationPath 'publish/downstream-api.zip' -Force"
-   powershell "Compress-Archive -Path 'publish/upstream/*' -DestinationPath 'publish/upstream-api.zip' -Force"
-   
-   # Create deployment packages (Linux/Mac with zip)
-   # cd publish/downstream && zip -r ../downstream-api.zip . && cd ../upstream && zip -r ../upstream-api.zip . && cd ../..
+   # Create deployment packages
+   Compress-Archive -Path 'publish/downstream/*' -DestinationPath 'publish/downstream-api.zip' -Force
+   Compress-Archive -Path 'publish/upstream/*' -DestinationPath 'publish/upstream-api.zip' -Force
    
    # Deploy to Azure
-   az webapp deploy \
-     --name observability-downstream \
-     --resource-group observability-rg-west \
-     --src-path publish/downstream-api.zip \
+   az webapp deploy `
+     --name observability-downstream `
+     --resource-group observability-rg-west `
+     --src-path publish/downstream-api.zip `
      --type zip
    
-   az webapp deploy \
-     --name observability-upstream \
-     --resource-group observability-rg-west \
-     --src-path publish/upstream-api.zip \
+   az webapp deploy `
+     --name observability-upstream `
+     --resource-group observability-rg-west `
+     --src-path publish/upstream-api.zip `
      --type zip
    ```
 
 6. **Verify Deployment**
-   ```bash
+   ```powershell
    # Test health endpoints
-   curl https://observability-downstream.azurewebsites.net/health
-   curl https://observability-upstream.azurewebsites.net/health
+   Invoke-RestMethod https://observability-downstream.azurewebsites.net/health
+   Invoke-RestMethod https://observability-upstream.azurewebsites.net/health
    
    # Test application endpoints
-   curl "https://observability-upstream.azurewebsites.net/gateway/products/123?delayMs=100"
+   Invoke-RestMethod "https://observability-upstream.azurewebsites.net/gateway/products/123?delayMs=100"
    
    # Access Swagger UI
    # Navigate to: https://observability-upstream.azurewebsites.net/swagger
    ```
 
-### Current Deployment Status
+### Testing Azure Deployment
 
-✅ **Successfully Deployed**
-- **Resource Group**: observability-rg-west (West US 2 region)
-- **Upstream API**: https://observability-upstream.azurewebsites.net
-- **Downstream API**: https://observability-downstream.azurewebsites.net  
-- **Application Insights**: observability-insights (configured for both services)
-- **Status**: Both services are healthy and responding
+After deploying to Azure, test your endpoints:
 
-### Testing the Live Deployment
-
-```bash
+```powershell
 # Health checks
-curl https://observability-downstream.azurewebsites.net/health
-curl https://observability-upstream.azurewebsites.net/health
+Invoke-RestMethod https://your-downstream-app.azurewebsites.net/health
+Invoke-RestMethod https://your-upstream-app.azurewebsites.net/health
 
 # Product endpoint with latency simulation
-curl "https://observability-upstream.azurewebsites.net/gateway/products/123?delayMs=500"
+Invoke-RestMethod "https://your-upstream-app.azurewebsites.net/gateway/products/123?delayMs=500"
 
 # Order endpoint with failure simulation
-curl -X POST "https://observability-upstream.azurewebsites.net/gateway/orders?failureMode=transient"
+Invoke-RestMethod -Uri "https://your-upstream-app.azurewebsites.net/gateway/orders?failureMode=transient" -Method Post
 
 # CPU pressure test
-curl "https://observability-downstream.azurewebsites.net/pressure/cpu?iterations=100000"
+Invoke-RestMethod "https://your-downstream-app.azurewebsites.net/pressure/cpu?iterations=100000"
 
 # Memory pressure test
-curl "https://observability-downstream.azurewebsites.net/pressure/memory?mbToAllocate=50"
+Invoke-RestMethod "https://your-downstream-app.azurewebsites.net/pressure/memory?mbToAllocate=50"
+
+# Test advanced bugs (if enabled)
+cd test-data-generator
+dotnet run -- https://your-upstream-app.azurewebsites.net all
 ```
 
 ## Monitoring in Azure
@@ -540,24 +572,24 @@ Access Application Insights in Azure Portal and try these KQL queries:
 ### Setting Up Alerts
 
 1. **Create Alert for High Error Rate**
-   ```bash
-   az monitor metrics alert create \
-     --name "High Error Rate" \
-     --resource-group observability-rg \
-     --scopes /subscriptions/{subscription-id}/resourceGroups/observability-rg/providers/Microsoft.Insights/components/observability-insights \
-     --condition "count requests/failed > 10" \
-     --window-size 5m \
+   ```powershell
+   az monitor metrics alert create `
+     --name "High Error Rate" `
+     --resource-group observability-rg-west `
+     --scopes /subscriptions/{subscription-id}/resourceGroups/observability-rg-west/providers/Microsoft.Insights/components/observability-insights `
+     --condition "count requests/failed > 10" `
+     --window-size 5m `
      --evaluation-frequency 1m
    ```
 
 2. **Create Alert for High Response Time**
-   ```bash
-   az monitor metrics alert create \
-     --name "High Response Time" \
-     --resource-group observability-rg \
-     --scopes /subscriptions/{subscription-id}/resourceGroups/observability-rg/providers/Microsoft.Insights/components/observability-insights \
-     --condition "avg requests/duration > 2000" \
-     --window-size 5m \
+   ```powershell
+   az monitor metrics alert create `
+     --name "High Response Time" `
+     --resource-group observability-rg-west `
+     --scopes /subscriptions/{subscription-id}/resourceGroups/observability-rg-west/providers/Microsoft.Insights/components/observability-insights `
+     --condition "avg requests/duration > 2000" `
+     --window-size 5m `
      --evaluation-frequency 1m
    ```
 
@@ -567,8 +599,8 @@ Access Application Insights in Azure Portal and try these KQL queries:
 - **Application Insights**: First 5GB free, then $2.30/GB
 
 To minimize costs:
-1. Use B1 App Service tier for learning
-2. Delete resources when not in use: `az group delete --name observability-rg`
+1. Use F1 (Free) or B1 App Service tier for learning
+2. Delete resources when not in use: `az group delete --name observability-rg-west`
 3. Monitor Application Insights data ingestion
 
 ## Next Steps

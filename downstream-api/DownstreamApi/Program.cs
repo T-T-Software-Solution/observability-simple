@@ -72,29 +72,32 @@ app.MapGet("/products/{id}", async (int id, int? delayMs, HttpContext httpContex
     logger.LogInformation("Product endpoint called with id: {ProductId}, delayMs: {DelayMs}, correlationId: {CorrelationId}", 
         id, delayMs ?? 0, correlationId);
     
-    // ADVANCED EXERCISE BUG 1: Hardcoded performance degradation for "unlucky" product IDs
+    // Legacy validation system integration
     if (bugSim.IsHardcodedIdBugEnabled && bugSim.IsUnluckyProductId(id))
     {
-        codeTracker.LogBugTriggered(logger, "HARDCODED_DELAY", $"ProductId={id}", 3000);
-        logger.LogInformation("Product {ProductId} triggering special processing path", id);
-        await Task.Delay(3000); // Hidden 3-second delay for specific IDs
+        logger.LogInformation("Applying enhanced validation for product {ProductId}", id);
+        logger.LogDebug("Legacy system validation initiated for product {ProductId}", id);
+        await Task.Delay(3000); // Simulates legacy system call
+        logger.LogDebug("Legacy validation completed for product {ProductId}", id);
     }
     
-    // ADVANCED EXERCISE BUG 3: Memory leak for prime number IDs
+    // Product cache optimization
     if (bugSim.IsMemoryLeakBugEnabled && bugSim.IsPrime(id))
     {
-        codeTracker.LogBugTriggered(logger, "MEMORY_LEAK", $"Prime ProductId={id}", 0);
+        logger.LogDebug("Initializing product cache for {ProductId}", id);
         bugSim.LeakMemoryForId(id);
-        logger.LogDebug("Processing prime product {ProductId}", id);
+        logger.LogDebug("Product {ProductId} cached for performance optimization", id);
     }
     
-    // ADVANCED EXERCISE BUG 6: CPU spike for palindrome IDs
+    // Product recommendation engine
     if (bugSim.IsCpuSpikeBugEnabled && bugSim.IsPalindrome(id))
     {
+        logger.LogInformation("Calculating recommendations for product {ProductId}", id);
         var stopwatch = Stopwatch.StartNew();
         bugSim.ConsumeCpuForPalindrome(id, logger, codeTracker);
         stopwatch.Stop();
-        codeTracker.LogBugTriggered(logger, "CPU_SPIKE", $"Palindrome ProductId={id}", stopwatch.ElapsedMilliseconds);
+        logger.LogDebug("Recommendation calculation completed in {ElapsedMs}ms for product {ProductId}", 
+            stopwatch.ElapsedMilliseconds, id);
     }
     
     if (delayMs.HasValue && delayMs.Value > 0)
@@ -103,12 +106,12 @@ app.MapGet("/products/{id}", async (int id, int? delayMs, HttpContext httpContex
         await Task.Delay(delayMs.Value);
     }
     
-    // ADVANCED EXERCISE BUG 5: Cache poisoning for ID 0 or negative
+    // Cache management for edge cases
     if (bugSim.IsCachePoisoningBugEnabled && id <= 0)
     {
-        codeTracker.LogBugTriggered(logger, "CACHE_POISON", $"Invalid ProductId={id}", 0);
+        logger.LogWarning("Cache miss for product {ProductId}, loading from database", id);
         bugSim.PoisonCache();
-        logger.LogWarning("Processing special product ID: {ProductId}", id);
+        logger.LogDebug("Unexpected data format for product {ProductId}, using fallback values", id);
     }
     
     var product = new
@@ -136,26 +139,27 @@ app.MapPost("/orders", (string? failureMode, int? orderId, HttpContext httpConte
     logger.LogInformation("Order endpoint called with failureMode: {FailureMode}, orderId: {OrderId}, correlationId: {CorrelationId}", 
         failureMode ?? "none", actualOrderId, correlationId);
     
-    // ADVANCED EXERCISE BUG 2: Order range processing bug (1000-1099 fail 90% of the time)
+    // Order validation against business rules
     if (bugSim.IsOrderRangeBugEnabled && actualOrderId >= 1000 && actualOrderId <= 1099)
     {
         if (Random.Shared.Next(0, 10) < 9) // 90% failure rate
         {
-            codeTracker.LogBugTriggered(logger, "ORDER_RANGE_FAILURE", $"OrderId={actualOrderId}", 0);
-            logger.LogError("Order processing failed for order {OrderId} - Database constraint violation", actualOrderId);
-            throw new InvalidOperationException($"Order {actualOrderId} violates business rule BR-1099");
+            logger.LogError("Order validation failed for {OrderId}: Database constraint violation", actualOrderId);
+            logger.LogDebug("Order {OrderId} failed validation check against table ORDER_CONSTRAINTS", actualOrderId);
+            throw new InvalidOperationException($"Database error: Foreign key constraint FK_ORDER_VALIDATION failed for order {actualOrderId}");
         }
     }
     
-    // ADVANCED EXERCISE BUG 4: Thread pool exhaustion - every 10th request
+    // Periodic maintenance and cleanup tasks
     if (bugSim.IsThreadPoolBugEnabled)
     {
         bugSim.IncrementRequestCount();
         if (bugSim.ShouldExhaustThreadPool())
         {
-            codeTracker.LogBugTriggered(logger, "THREAD_POOL_EXHAUSTION", $"RequestNumber={bugSim.RequestCount}", 5000);
-            logger.LogDebug("Request {RequestNumber} triggering extended processing", bugSim.RequestCount);
-            Thread.Sleep(5000); // Block thread for 5 seconds
+            logger.LogInformation("Starting scheduled maintenance task");
+            logger.LogDebug("Synchronous database cleanup initiated for request {RequestNumber}", bugSim.RequestCount);
+            Thread.Sleep(5000); // Simulates synchronous database operation
+            logger.LogDebug("Maintenance task completed");
         }
     }
     
@@ -281,7 +285,7 @@ public class BugSimulation
     private readonly object _lock = new();
     
     // Unlucky product IDs that trigger performance issues
-    private readonly HashSet<int> _unluckyIds = new() { 13, 42, 99, 666, 1337, 2024, 9999 };
+    private readonly HashSet<int> _unluckyIds = new() { 13, 42, 99, 666, 675, 777, 1337, 2024, 9999 };
     
     public BugSimulation(IConfiguration configuration)
     {
@@ -377,13 +381,13 @@ public class BugSimulation
     {
         if (IsPalindrome(id))
         {
-            logger.LogWarning("CPU-intensive operation triggered for palindrome ID: {ProductId}", id);
+            logger.LogDebug("Running similarity analysis for product {ProductId}", id);
             
             // Consume CPU with intensive calculation
             var startTime = DateTime.UtcNow;
             double result = 0;
             
-            // Perform 50 million iterations of complex math
+            // Perform 50 million iterations of complex math (simulating ML model)
             for (int i = 0; i < 50_000_000; i++)
             {
                 result += Math.Sqrt(i) * Math.Sin(i) * Math.Cos(i);
@@ -396,22 +400,17 @@ public class BugSimulation
             }
             
             var duration = (DateTime.UtcNow - startTime).TotalMilliseconds;
-            logger.LogWarning("CPU spike completed for palindrome {ProductId} in {Duration}ms", id, duration);
+            logger.LogDebug("Similarity analysis completed for product {ProductId} in {Duration}ms", id, duration);
         }
     }
 }
 
-// Enhanced Code Tracking and Diagnostics
+// Code Tracking Service (disabled for realistic production simulation)
 public class CodeTracker
 {
-    private readonly List<BugEvent> _bugEvents = new();
-    private readonly object _lock = new();
-    private readonly TelemetryClient? _telemetryClient;
-
     public CodeTracker(IServiceProvider serviceProvider)
     {
-        // Try to get TelemetryClient, but don't fail if Application Insights is not configured
-        _telemetryClient = serviceProvider.GetService<TelemetryClient>();
+        // No-op constructor for compatibility
     }
 
     public void LogBugTriggered(
@@ -423,103 +422,30 @@ public class CodeTracker
         [CallerFilePath] string filePath = "",
         [CallerLineNumber] int lineNumber = 0)
     {
-        var fileName = Path.GetFileName(filePath);
-        var codeLocation = $"{fileName}:{lineNumber}";
-        var stackTrace = Environment.StackTrace;
-        
-        var bugEvent = new BugEvent
-        {
-            Timestamp = DateTime.UtcNow,
-            BugType = bugType,
-            Context = context,
-            DurationMs = durationMs,
-            MethodName = methodName,
-            FileName = fileName,
-            LineNumber = lineNumber,
-            CodeLocation = codeLocation,
-            StackTrace = stackTrace
-        };
-
-        lock (_lock)
-        {
-            _bugEvents.Add(bugEvent);
-            
-            // Keep only last 100 events to prevent memory issues
-            if (_bugEvents.Count > 100)
-            {
-                _bugEvents.RemoveAt(0);
-            }
-        }
-
-        // Log with structured data
-        using (logger.BeginScope(new Dictionary<string, object>
-        {
-            ["BugType"] = bugType,
-            ["Context"] = context,
-            ["CodeLocation"] = codeLocation,
-            ["MethodName"] = methodName,
-            ["FileName"] = fileName,
-            ["LineNumber"] = lineNumber,
-            ["DurationMs"] = durationMs
-        }))
-        {
-            logger.LogWarning("🐛 BUG DETECTED: {BugType} at {CodeLocation} in method {MethodName} - {Context}", 
-                bugType, codeLocation, methodName, context);
-        }
-
-        // Send custom telemetry to Application Insights
-        _telemetryClient?.TrackEvent("BugTriggered", new Dictionary<string, string>
-        {
-            ["BugType"] = bugType,
-            ["Context"] = context,
-            ["CodeLocation"] = codeLocation,
-            ["MethodName"] = methodName,
-            ["FileName"] = fileName,
-            ["LineNumber"] = lineNumber.ToString(),
-            ["StackTrace"] = stackTrace
-        }, new Dictionary<string, double>
-        {
-            ["DurationMs"] = durationMs
-        });
+        // Intentionally disabled - in production, bugs aren't explicitly logged
+        // This method is kept for code compatibility but does nothing
+        // Bugs should be discovered through observability patterns:
+        // - Performance metrics (latency, CPU, memory)
+        // - Error rates and patterns
+        // - Request correlation and distributed tracing
     }
 
     public List<BugEvent> GetRecentBugEvents()
     {
-        lock (_lock)
-        {
-            return _bugEvents.ToList();
-        }
+        // Return empty list - no explicit bug tracking in production
+        return new List<BugEvent>();
     }
 
     public BugDiagnostics GetDiagnostics()
     {
-        lock (_lock)
+        // Return empty diagnostics - bugs should be found through observability
+        return new BugDiagnostics
         {
-            var events = _bugEvents.ToList();
-            var bugSummary = events
-                .GroupBy(e => e.BugType)
-                .ToDictionary(
-                    g => g.Key, 
-                    g => new BugSummary
-                    {
-                        Count = g.Count(),
-                        AvgDurationMs = g.Average(e => e.DurationMs),
-                        LastOccurrence = g.Max(e => e.Timestamp),
-                        CodeLocations = g.Select(e => e.CodeLocation).Distinct().ToList()
-                    });
-
-            return new BugDiagnostics
-            {
-                TotalBugEvents = events.Count,
-                BugTypes = bugSummary,
-                RecentEvents = events.TakeLast(10).ToList(),
-                CodeHotspots = events
-                    .GroupBy(e => e.CodeLocation)
-                    .OrderByDescending(g => g.Count())
-                    .Take(5)
-                    .ToDictionary(g => g.Key, g => g.Count())
-            };
-        }
+            TotalBugEvents = 0,
+            BugTypes = new Dictionary<string, BugSummary>(),
+            RecentEvents = new List<BugEvent>(),
+            CodeHotspots = new Dictionary<string, int>()
+        };
     }
 }
 
