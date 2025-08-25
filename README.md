@@ -140,51 +140,51 @@
 
 ### 1. จำลองความช้า (Latency Simulation)
 ทดสอบ response time ที่ช้า:
-```powershell
+```bash
 # Response ปกติ
-Invoke-RestMethod http://localhost:5001/products/123
+curl http://localhost:5001/products/123
 
 # ช้า 2 วินาที
-Invoke-RestMethod "http://localhost:5001/products/123?delayMs=2000"
+curl "http://localhost:5001/products/123?delayMs=2000"
 
 # ผ่าน gateway พร้อมความช้า
-Invoke-RestMethod "http://localhost:5000/gateway/products/456?delayMs=1500"
+curl "http://localhost:5000/gateway/products/456?delayMs=1500"
 ```
 
 ### 2. จำลองข้อผิดพลาด (Error Simulation)
 ทดสอบ failure modes ต่างๆ:
-```powershell
+```bash
 # สถานการณ์สำเร็จ
-Invoke-RestMethod -Uri http://localhost:5001/orders -Method Post
+curl -X POST http://localhost:5001/orders
 
 # ความล้มเหลวชั่วคราว (โอกาส 50%)
-Invoke-RestMethod -Uri "http://localhost:5001/orders?failureMode=transient" -Method Post
+curl -X POST "http://localhost:5001/orders?failureMode=transient"
 
 # ล้มเหลวตลอด (100% พัง)
-Invoke-RestMethod -Uri "http://localhost:5001/orders?failureMode=persistent" -Method Post
+curl -X POST "http://localhost:5001/orders?failureMode=persistent"
 
 # ผ่าน gateway
-Invoke-RestMethod -Uri "http://localhost:5000/gateway/orders?failureMode=transient" -Method Post
+curl -X POST "http://localhost:5000/gateway/orders?failureMode=transient"
 ```
 
 ### 3. กดดัน CPU
 จำลองการใช้ CPU สูง:
-```powershell
+```bash
 # โหลดเบาๆ
-Invoke-RestMethod "http://localhost:5001/pressure/cpu?iterations=100000"
+curl "http://localhost:5001/pressure/cpu?iterations=100000"
 
 # โหลดหนักมาก
-Invoke-RestMethod "http://localhost:5001/pressure/cpu?iterations=10000000"
+curl "http://localhost:5001/pressure/cpu?iterations=10000000"
 ```
 
 ### 4. กดดัน Memory
 จำลองการจอง memory:
-```powershell
+```bash
 # จอง 50MB
-Invoke-RestMethod "http://localhost:5001/pressure/memory?mbToAllocate=50"
+curl "http://localhost:5001/pressure/memory?mbToAllocate=50"
 
 # จอง 200MB
-Invoke-RestMethod "http://localhost:5001/pressure/memory?mbToAllocate=200"
+curl "http://localhost:5001/pressure/memory?mbToAllocate=200"
 ```
 
 ![Postman เรียก API ทดสอบ CPU และ Memory](./documents/postman_call_api_consume_ram_cpu.png)
@@ -503,13 +503,13 @@ dotnet run -- https://observability-upstream.azurewebsites.net all
    ```
 
 6. **ตรวจสอบการ Deploy**
-   ```powershell
+   ```bash
    # ทดสอบ health endpoints
-   Invoke-RestMethod https://observability-downstream.azurewebsites.net/health
-   Invoke-RestMethod https://observability-upstream.azurewebsites.net/health
+   curl https://observability-downstream.azurewebsites.net/health
+   curl https://observability-upstream.azurewebsites.net/health
    
    # ทดสอบ application endpoints
-   Invoke-RestMethod "https://observability-upstream.azurewebsites.net/gateway/products/123?delayMs=100"
+   curl "https://observability-upstream.azurewebsites.net/gateway/products/123?delayMs=100"
    
    # เข้าดู Swagger UI
    # ไปที่: https://observability-upstream.azurewebsites.net/swagger
@@ -519,22 +519,22 @@ dotnet run -- https://observability-upstream.azurewebsites.net all
 
 หลังจาก deploy ขึ้น Azure แล้ว ลองทดสอบ endpoints:
 
-```powershell
+```bash
 # Health checks
-Invoke-RestMethod https://your-downstream-app.azurewebsites.net/health
-Invoke-RestMethod https://your-upstream-app.azurewebsites.net/health
+curl https://your-downstream-app.azurewebsites.net/health
+curl https://your-upstream-app.azurewebsites.net/health
 
 # Product endpoint พร้อมจำลองความช้า
-Invoke-RestMethod "https://your-upstream-app.azurewebsites.net/gateway/products/123?delayMs=500"
+curl "https://your-upstream-app.azurewebsites.net/gateway/products/123?delayMs=500"
 
 # Order endpoint พร้อมจำลองความล้มเหลว
-Invoke-RestMethod -Uri "https://your-upstream-app.azurewebsites.net/gateway/orders?failureMode=transient" -Method Post
+curl -X POST "https://your-upstream-app.azurewebsites.net/gateway/orders?failureMode=transient"
 
 # ทดสอบแรงดัน CPU
-Invoke-RestMethod "https://your-downstream-app.azurewebsites.net/pressure/cpu?iterations=100000"
+curl "https://your-downstream-app.azurewebsites.net/pressure/cpu?iterations=100000"
 
 # ทดสอบแรงดัน memory
-Invoke-RestMethod "https://your-downstream-app.azurewebsites.net/pressure/memory?mbToAllocate=50"
+curl "https://your-downstream-app.azurewebsites.net/pressure/memory?mbToAllocate=50"
 
 # ทดสอบ bug ขั้นสูง (ถ้าเปิดใช้งาน)
 cd test-data-generator

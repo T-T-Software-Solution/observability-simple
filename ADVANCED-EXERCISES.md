@@ -36,7 +36,7 @@ export ADVANCED_BUG_CPU_SPIKE=true
 
 ใช้ test data generator ภาษา C# แบบ cross-platform เพื่อกระตุ้น bug:
 
-```powershell
+```bash
 # Build test data generator
 cd test-data-generator
 dotnet build
@@ -74,7 +74,7 @@ dotnet run -- http://localhost:5000 edge     # ทดสอบ edge cases
 Log ดูปกติมาก - ระบบเก่าๆ มักจะช้าอยู่แล้ว แต่ทำไมถึงช้าเฉพาะบางสินค้า?
 
 ### วิธีสร้างการทดสอบ
-```powershell
+```bash
 # รันการทดสอบ random product ID
 cd test-data-generator
 dotnet run -- http://localhost:5000 random
@@ -126,7 +126,7 @@ Bug คือ: สินค้าที่มี ID "ไม่เป็นมง
 ดูเหมือนปัญหา database แต่ทำไมเฉพาะช่วง order บางช่วง?
 
 ### วิธีสร้างการทดสอบ
-```powershell
+```bash
 # รันการทดสอบช่วง order
 cd test-data-generator
 dotnet run -- http://localhost:5000 range
@@ -177,7 +177,7 @@ Bug คือ: Order ที่มี ID 1000-1099 จะล้มเหลว 90
 การทำ cache ปกติใช่ไหม? แต่ทำไม memory ไม่ถูกคืน?
 
 ### วิธีสร้างการทดสอบ
-```powershell
+```bash
 # รันการทดสอบเลขจำนวนเฉพาะ
 cd test-data-generator
 dotnet run -- http://localhost:5000 prime
@@ -228,7 +228,7 @@ Bug คือ: สินค้าที่มี ID เป็นจำนวน�
 Maintenance เป็นเรื่องปกติ แต่ทำไมรันช่วง peak hours และ block requests?
 
 ### วิธีสร้างการทดสอบ
-```powershell
+```bash
 # รันการทดสอบ load pattern
 cd test-data-generator
 dotnet run -- http://localhost:5000 load
@@ -279,7 +279,7 @@ Bug คือ: ทุก request ที่ 10 จะ block thread 5 วินา
 ดูเหมือนปัญหา data format แต่ทำไมกระทบ request หลังจากนั้นทั้งหมด?
 
 ### วิธีสร้างการทดสอบ
-```powershell
+```bash
 # รันการทดสอบ edge case
 cd test-data-generator
 dotnet run -- http://localhost:5000 edge
@@ -331,15 +331,15 @@ Bug คือ: Product ID ≤ 0 จะทำให้ cache เสียหา�
 Recommendation engine ใช้ CPU เยอะเป็นปกติ แต่ทำไมบางสินค้าใช้เวลานาน 10-100 เท่า?
 
 ### วิธีสร้างการทดสอบ
-```powershell
+```bash
 # รันการทดสอบ palindrome
 cd test-data-generator
 dotnet run -- http://localhost:5000 palindrome
 
 # หรือทดสอบ palindrome ID เฉพาะ
-Invoke-RestMethod http://localhost:5001/products/121
-Invoke-RestMethod http://localhost:5001/products/1221
-Invoke-RestMethod http://localhost:5001/products/12321
+curl http://localhost:5001/products/121
+curl http://localhost:5001/products/1221
+curl http://localhost:5001/products/12321
 ```
 
 ### ขั้นตอนการสืบสวน
